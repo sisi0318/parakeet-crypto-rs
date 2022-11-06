@@ -9,6 +9,8 @@
   - QMCv2 (map / rc4)
 - 酷狗音乐
   - KGM / VPR
+- 喜马拉雅
+  - X2M / X3M
 
 ## 命令行调用
 
