@@ -2,7 +2,7 @@ use crate::{interfaces::decryptor::DecryptorError, utils::md5};
 
 use super::{
     kgm_crypto::{KGMCrypto, KGMCryptoConfig},
-    utils::offset_to_xor_key,
+    utils::xor_u32_bytes,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -14,7 +14,8 @@ pub struct KGMCryptoType4 {
     slot_key_expanded: Box<[u8]>,
 }
 
-const DIGEST_INDEXES: [usize; 31] = [
+const V4_DIGEST_SIZE: usize = 31;
+const DIGEST_INDEXES: [usize; V4_DIGEST_SIZE] = [
     0x05, 0x0e, 0x0d, 0x02, 0x0c, 0x0a, 0x0f, 0x0b, //
     0x03, 0x08, 0x05, 0x06, 0x09, 0x04, 0x03, 0x07, //
     0x00, 0x0e, 0x0d, 0x06, 0x02, 0x0c, 0x0a, 0x0f, //
@@ -22,14 +23,19 @@ const DIGEST_INDEXES: [usize; 31] = [
 ];
 
 impl KGMCryptoType4 {
-    fn key_expansion(table: &[u8], key: &[u8]) -> Box<[u8]> {
-        let md5_key = md5(key);
+    fn custom_md5(data: &[u8]) -> [u8; V4_DIGEST_SIZE] {
+        let md5_key = md5(data);
 
-        let mut md5_final = [0u8; DIGEST_INDEXES.len()];
+        let mut md5_final = [0u8; V4_DIGEST_SIZE];
         for (i, v) in md5_final.iter_mut().enumerate() {
             *v = md5_key[DIGEST_INDEXES[i]];
         }
-        let md5_final = md5_final;
+
+        md5_final
+    }
+
+    fn key_expansion(table: &[u8], key: &[u8]) -> Box<[u8]> {
+        let md5_final = Self::custom_md5(key);
 
         let final_key_size = 4 * (md5_final.len() - 1) * (key.len() - 1);
         let mut expanded_key = Vec::<u8>::with_capacity(final_key_size);
@@ -94,7 +100,7 @@ impl KGMCrypto for KGMCryptoType4 {
 
         for item in buffer.iter_mut() {
             // XOR all bytes of a "u32" integer.
-            let offset_key = offset_to_xor_key(offset);
+            let offset_key = xor_u32_bytes(offset as u32);
 
             // Rust should be able to combine the mod/div in a single call..?
             let offset_usize = offset as usize;
@@ -123,7 +129,7 @@ impl KGMCrypto for KGMCryptoType4 {
 
         for item in buffer.iter_mut() {
             // XOR all bytes of a "u32" integer.
-            let offset_key = offset_to_xor_key(offset);
+            let offset_key = xor_u32_bytes(offset as u32);
 
             // Rust should be able to combine the mod/div in a single call..?
             let offset_usize = offset as usize;

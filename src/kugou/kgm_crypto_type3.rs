@@ -1,8 +1,8 @@
-use crate::interfaces::decryptor::DecryptorError;
+use crate::{interfaces::decryptor::DecryptorError, utils::md5};
 
 use super::{
     kgm_crypto::{KGMCrypto, KGMCryptoConfig},
-    utils::{md5_kugou, offset_to_xor_key},
+    utils::xor_u32_bytes,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -11,17 +11,31 @@ pub struct KGMCryptoType3 {
     file_key: [u8; 17],
 }
 
+impl KGMCryptoType3 {
+    fn custom_md5<T: AsRef<[u8]>>(buffer: T) -> [u8; 16] {
+        let digest = md5(buffer);
+        let mut result = [0u8; 16];
+
+        for i in (0..16).step_by(2) {
+            result[i] = digest[14 - i];
+            result[i + 1] = digest[14 - i + 1];
+        }
+
+        result
+    }
+}
+
 impl KGMCrypto for KGMCryptoType3 {
     fn configure(&mut self, _config: &KGMCryptoConfig) -> Result<(), DecryptorError> {
         Ok(())
     }
 
     fn expand_slot_key(&mut self, key: &[u8]) {
-        self.slot_key = md5_kugou(&key);
+        self.slot_key = Self::custom_md5(&key);
     }
 
     fn expand_file_key(&mut self, key: &[u8]) {
-        self.file_key[..16].copy_from_slice(&md5_kugou(&key));
+        self.file_key[..16].copy_from_slice(&Self::custom_md5(&key));
         self.file_key[16] = 0x6b;
     }
 
@@ -36,7 +50,7 @@ impl KGMCrypto for KGMCryptoType3 {
 
         for item in buffer.iter_mut() {
             // XOR all bytes of a "u32" integer.
-            let offset_key = offset_to_xor_key(offset);
+            let offset_key = xor_u32_bytes(offset as u32);
 
             let offset_usize = offset as usize;
             let key1_index = offset_usize % key1_len;
@@ -64,7 +78,7 @@ impl KGMCrypto for KGMCryptoType3 {
 
         for item in buffer.iter_mut() {
             // XOR all bytes of a "u32" integer.
-            let offset_key = offset_to_xor_key(offset);
+            let offset_key = xor_u32_bytes(offset as u32);
 
             let offset_usize = offset as usize;
             let key1_index = offset_usize % key1_len;
