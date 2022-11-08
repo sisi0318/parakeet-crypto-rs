@@ -35,8 +35,7 @@ impl KGM {
         let header = header.to_bytes();
         to.write_all(&header)?;
 
-        let mut bytes_left = from
-            .seek(SeekFrom::End(0))? as u64;
+        let mut bytes_left = from.seek(SeekFrom::End(0))? as u64;
 
         from.seek(SeekFrom::Start(0))?;
 
@@ -76,9 +75,7 @@ impl Decryptor for KGM {
         let header = KGMHeader::from_reader(from)?;
         let mut decryptor = create_kgm_decryptor(&header, &self.config)?;
 
-        let mut bytes_left = from
-            .seek(SeekFrom::End(0))?
-            - header.offset_to_data as u64;
+        let mut bytes_left = from.seek(SeekFrom::End(0))? - header.offset_to_data as u64;
 
         from.seek(SeekFrom::Start(header.offset_to_data as u64))?;
 

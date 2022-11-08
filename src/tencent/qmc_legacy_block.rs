@@ -19,8 +19,7 @@ where
     W: Write,
 {
     // Detect file size.
-    let mut bytes_left = from
-        .seek(SeekFrom::End(-(trim_right as i64)))? as usize;
+    let mut bytes_left = from.seek(SeekFrom::End(-(trim_right as i64)))? as usize;
 
     // Move back to the beginning of the stream.
     from.seek(SeekFrom::Start(0))?;
@@ -29,9 +28,7 @@ where
     macro_rules! decrypt_block {
         ($block:expr, $offset:expr) => {
             if bytes_left > 0 {
-                let bytes_read = from
-                    .read(&mut $block)?
-                    .min(bytes_left);
+                let bytes_read = from.read(&mut $block)?.min(bytes_left);
 
                 decryptor.decrypt_block(&mut $block[0..bytes_read], $offset);
                 to.write_all(&$block[0..bytes_read])?;

@@ -65,8 +65,7 @@ where
     let decryptor = QMC2RC4::new(embed_key);
 
     // Detect file size.
-    let mut bytes_left = from
-        .seek(SeekFrom::End(-(trim_right as i64)))? as usize;
+    let mut bytes_left = from.seek(SeekFrom::End(-(trim_right as i64)))? as usize;
 
     // Move back to the beginning of the stream.
     from.seek(SeekFrom::Start(0))?;
@@ -77,9 +76,7 @@ where
     macro_rules! decrypt_block {
         ($block_len:expr, $decryptor_method:expr) => {
             if bytes_left > 0 {
-                let bytes_read = from
-                    .read(&mut buffer[..$block_len])?
-                    .min(bytes_left);
+                let bytes_read = from.read(&mut buffer[..$block_len])?.min(bytes_left);
 
                 $decryptor_method(&mut buffer[..bytes_read]);
 

@@ -1,9 +1,10 @@
 use base64::DecodeError;
-use std::{io::{Read, Seek, Write}, str::Utf8Error};
+use std::{
+    io::{Read, Seek, Write},
+    str::Utf8Error,
+};
 use thiserror::Error;
 
-// FIXME: better handling error messages.
-//   e.g. https://boats.gitlab.io/failure/
 #[derive(Debug, Error)]
 pub enum DecryptorError {
     #[error("io error, {0}")]
@@ -23,7 +24,6 @@ pub enum DecryptorError {
     #[error("TEA key error (is your key correct?)")]
     TEADecryptError,
 
-    
     #[error("invalid kugou key slot: {0}")]
     KGMInvalidKeySlotError(u32),
     #[error("invalid kugou file key")]

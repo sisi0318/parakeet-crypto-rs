@@ -55,28 +55,22 @@ impl QMCFooterParser {
     where
         R: Read + Seek,
     {
-        input
-            .seek(SeekFrom::End(-4))?;
+        input.seek(SeekFrom::End(-4))?;
 
-        let magic = input
-            .read_u32::<LittleEndian>()?;
+        let magic = input.read_u32::<LittleEndian>()?;
 
         let (trim_right, embed_key) = match magic {
             MAGIC_ANDROID_S_TAG => return Err(DecryptorError::QMCAndroidSTag),
             MAGIC_ANDROID_Q_TAG => {
-                input
-                    .seek(SeekFrom::End(-8))?;
+                input.seek(SeekFrom::End(-8))?;
 
-                let meta_size = input
-                    .read_u32::<BigEndian>()?;
+                let meta_size = input.read_u32::<BigEndian>()?;
 
                 let trim_right = meta_size as usize + 8;
 
                 let mut buffer = vec![0u8; meta_size as usize];
-                input
-                    .seek(SeekFrom::End(-8 - (meta_size as i64)))?;
-                input
-                    .read_exact(&mut buffer)?;
+                input.seek(SeekFrom::End(-8 - (meta_size as i64)))?;
+                input.read_exact(&mut buffer)?;
 
                 let embed_key_size = buffer
                     .iter()
@@ -88,14 +82,12 @@ impl QMCFooterParser {
                 (trim_right, buffer)
             }
             0..=0x400 => {
-                input
-                    .seek(SeekFrom::End(-4 - (magic as i64)))?;
+                input.seek(SeekFrom::End(-4 - (magic as i64)))?;
 
                 let trim_right = magic as usize + 4;
 
                 let mut buffer = vec![0u8; magic as usize];
-                input
-                    .read_exact(&mut buffer)?;
+                input.read_exact(&mut buffer)?;
 
                 (trim_right, buffer)
             }
