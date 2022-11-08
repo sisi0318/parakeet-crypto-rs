@@ -29,27 +29,23 @@ impl KGM {
         R: Read + Seek,
         W: Write,
     {
-        from.seek(SeekFrom::Start(0))
-            .or(Err(DecryptorError::IOError))?;
+        from.seek(SeekFrom::Start(0))?;
         let mut encryptor = create_kgm_encryptor(header, &self.config)?;
 
         let header = header.to_bytes();
-        to.write_all(&header).or(Err(DecryptorError::IOError))?;
+        to.write_all(&header)?;
 
         let mut bytes_left = from
-            .seek(SeekFrom::End(0))
-            .or(Err(DecryptorError::IOError))? as u64;
+            .seek(SeekFrom::End(0))? as u64;
 
-        from.seek(SeekFrom::Start(0))
-            .or(Err(DecryptorError::IOError))?;
+        from.seek(SeekFrom::Start(0))?;
 
         let mut offset = 0;
         let mut buffer = [0u8; 0x1000];
         while bytes_left > 0 {
-            let bytes_read = from.read(&mut buffer).or(Err(DecryptorError::IOError))?;
+            let bytes_read = from.read(&mut buffer)?;
             encryptor.encrypt(offset, &mut buffer[..bytes_read]);
-            to.write_all(&buffer[..bytes_read])
-                .or(Err(DecryptorError::IOError))?;
+            to.write_all(&buffer[..bytes_read])?;
             offset += bytes_read as u64;
             bytes_left -= bytes_read as u64;
         }
@@ -63,10 +59,9 @@ impl Decryptor for KGM {
     where
         R: Read + Seek,
     {
-        from.seek(SeekFrom::Start(0))
-            .or(Err(DecryptorError::IOError))?;
+        from.seek(SeekFrom::Start(0))?;
 
-        let header = KGMHeader::from_reader(from).or(Err(DecryptorError::IOError))?;
+        let header = KGMHeader::from_reader(from)?;
 
         create_kgm_decryptor(&header, &self.config).and(Ok(()))
     }
@@ -76,27 +71,23 @@ impl Decryptor for KGM {
         R: Read + Seek,
         W: Write,
     {
-        from.seek(SeekFrom::Start(0))
-            .or(Err(DecryptorError::IOError))?;
+        from.seek(SeekFrom::Start(0))?;
 
-        let header = KGMHeader::from_reader(from).or(Err(DecryptorError::IOError))?;
+        let header = KGMHeader::from_reader(from)?;
         let mut decryptor = create_kgm_decryptor(&header, &self.config)?;
 
         let mut bytes_left = from
-            .seek(SeekFrom::End(0))
-            .or(Err(DecryptorError::IOError))?
+            .seek(SeekFrom::End(0))?
             - header.offset_to_data as u64;
 
-        from.seek(SeekFrom::Start(header.offset_to_data as u64))
-            .or(Err(DecryptorError::IOError))?;
+        from.seek(SeekFrom::Start(header.offset_to_data as u64))?;
 
         let mut offset = 0;
         let mut buffer = [0u8; 0x1000];
         while bytes_left > 0 {
-            let bytes_read = from.read(&mut buffer).or(Err(DecryptorError::IOError))?;
+            let bytes_read = from.read(&mut buffer)?;
             decryptor.decrypt(offset, &mut buffer[..bytes_read]);
-            to.write_all(&buffer[..bytes_read])
-                .or(Err(DecryptorError::IOError))?;
+            to.write_all(&buffer[..bytes_read])?;
             offset += bytes_read as u64;
             bytes_left -= bytes_read as u64;
         }

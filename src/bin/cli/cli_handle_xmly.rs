@@ -5,7 +5,7 @@ use parakeet_crypto::{interfaces::decryptor::Decryptor, ximalaya};
 
 use super::{
     logger::CliLogger,
-    utils::{CliBinaryContent, CliFilePath, CliFriendlyDecryptionError},
+    utils::{CliBinaryContent, CliFilePath},
 };
 
 /// Handle x2m/x3m encryption/decryption.
@@ -63,8 +63,7 @@ pub fn cli_handle_xmly(args: XimalayaOptions) {
     let xmly =
         ximalaya::new_from_key(&args.key.content[..], &scramble_table).unwrap_or_else(|err| {
             log.error(&format!(
-                "Create encryptor/decryptor using key failed: {}",
-                err.to_friendly_error()
+                "Create encryptor/decryptor using key failed: {err}"
             ));
             process::exit(1)
         });
@@ -77,11 +76,7 @@ pub fn cli_handle_xmly(args: XimalayaOptions) {
         xmly.decrypt(&mut input_file, &mut output_file)
     }
     .unwrap_or_else(|err| {
-        log.error(&format!(
-            "{} failed: {}",
-            operation,
-            err.to_friendly_error()
-        ));
+        log.error(&format!("{operation} failed: {err}"));
         process::exit(1)
     });
 

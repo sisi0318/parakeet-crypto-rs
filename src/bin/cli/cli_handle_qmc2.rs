@@ -8,7 +8,7 @@ use parakeet_crypto::{
 
 use crate::cli::logger::CliLogger;
 
-use super::utils::{CliBinaryArray, CliFilePath, CliFriendlyDecryptionError};
+use super::utils::{CliBinaryArray, CliFilePath};
 
 /// Handle QMC2 File.
 #[derive(Debug, Eq, PartialEq, FromArgs)]
@@ -62,7 +62,7 @@ pub fn cli_handle_qmc2(args: QMC2Options) {
             &mut File::create(args.output_file.path).unwrap(),
         )
         .unwrap_or_else(|err| {
-            log.error(&format!("Decryption failed: {}", err.to_friendly_error()));
+            log.error(&format!("Decryption failed: {err}"));
             process::exit(1);
         });
     log.info("Decryption OK.");

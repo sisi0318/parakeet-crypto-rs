@@ -56,33 +56,27 @@ impl QMCFooterParser {
         R: Read + Seek,
     {
         input
-            .seek(SeekFrom::End(-4))
-            .or(Err(DecryptorError::IOError))?;
+            .seek(SeekFrom::End(-4))?;
 
         let magic = input
-            .read_u32::<LittleEndian>()
-            .or(Err(DecryptorError::IOError))?;
+            .read_u32::<LittleEndian>()?;
 
         let (trim_right, embed_key) = match magic {
             MAGIC_ANDROID_S_TAG => return Err(DecryptorError::QMCAndroidSTag),
             MAGIC_ANDROID_Q_TAG => {
                 input
-                    .seek(SeekFrom::End(-8))
-                    .or(Err(DecryptorError::IOError))?;
+                    .seek(SeekFrom::End(-8))?;
 
                 let meta_size = input
-                    .read_u32::<BigEndian>()
-                    .or(Err(DecryptorError::IOError))?;
+                    .read_u32::<BigEndian>()?;
 
                 let trim_right = meta_size as usize + 8;
 
                 let mut buffer = vec![0u8; meta_size as usize];
                 input
-                    .seek(SeekFrom::End(-8 - (meta_size as i64)))
-                    .or(Err(DecryptorError::IOError))?;
+                    .seek(SeekFrom::End(-8 - (meta_size as i64)))?;
                 input
-                    .read_exact(&mut buffer)
-                    .or(Err(DecryptorError::IOError))?;
+                    .read_exact(&mut buffer)?;
 
                 let embed_key_size = buffer
                     .iter()
@@ -95,24 +89,22 @@ impl QMCFooterParser {
             }
             0..=0x400 => {
                 input
-                    .seek(SeekFrom::End(-4 - (magic as i64)))
-                    .or(Err(DecryptorError::IOError))?;
+                    .seek(SeekFrom::End(-4 - (magic as i64)))?;
 
                 let trim_right = magic as usize + 4;
 
                 let mut buffer = vec![0u8; magic as usize];
                 input
-                    .read_exact(&mut buffer)
-                    .or(Err(DecryptorError::IOError))?;
+                    .read_exact(&mut buffer)?;
 
                 (trim_right, buffer)
             }
             _ => return Err(DecryptorError::QMCInvalidFooter(magic)),
         };
 
-        let embed_key = str::from_utf8(&embed_key).or(Err(DecryptorError::StringEncodeError))?;
+        let embed_key = str::from_utf8(&embed_key)?;
         let embed_key = embed_key.trim_end_matches(char::from(0));
-        let embed_key = base64::decode(embed_key).map_err(DecryptorError::Base64DecodeError)?;
+        let embed_key = base64::decode(embed_key)?;
 
         if embed_key.starts_with(ENC_V2_PREFIX_TAG) {
             self.decrypt_key_v2(&embed_key[ENC_V2_PREFIX_TAG.len()..])
@@ -132,7 +124,7 @@ impl QMCFooterParser {
             tea_key[i + 1] = header[i / 2];
         }
 
-        let final_key = tc_tea::decrypt(body, &tea_key).ok_or(DecryptorError::TEADecryptError)?;
+        let final_key = tc_tea::decrypt(body, tea_key).ok_or(DecryptorError::TEADecryptError)?;
 
         Ok([header, &final_key].concat().into())
     }
@@ -141,8 +133,8 @@ impl QMCFooterParser {
         let key = tc_tea::decrypt(embed_key, self.enc_v2_key_stage1)
             .and_then(|key| tc_tea::decrypt(key, self.enc_v2_key_stage2))
             .ok_or(DecryptorError::TEADecryptError)?;
-        let key = str::from_utf8(&key).or(Err(DecryptorError::StringEncodeError))?;
-        let key = base64::decode(key).map_err(DecryptorError::Base64DecodeError)?;
+        let key = str::from_utf8(&key)?;
+        let key = base64::decode(key)?;
 
         self.decrypt_key_v1(&key)
     }
@@ -172,7 +164,7 @@ mod tests {
             tea_key[i + 1] = header[i / 2];
         }
 
-        let second_half_encrypted = tc_tea::encrypt(&body, tea_key).unwrap();
+        let second_half_encrypted = tc_tea::encrypt(body, tea_key).unwrap();
         let embed_key = [header, &second_half_encrypted].concat();
 
         base64::encode(embed_key).as_bytes().into()
@@ -255,9 +247,10 @@ mod tests {
         let parser = QMCFooterParser::new(0);
         let footer = b"1111STag".to_vec();
         let mut stream = Cursor::new(footer);
-        assert_eq!(
+        //使用 `matches!` 来匹配enum
+        assert!(matches!(
             parser.parse(&mut stream).unwrap_err(),
             DecryptorError::QMCAndroidSTag
-        );
+        ));
     }
 }
