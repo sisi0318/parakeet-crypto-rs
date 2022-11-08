@@ -31,11 +31,11 @@ impl KGMCrypto for KGMCryptoType3 {
     }
 
     fn expand_slot_key(&mut self, key: &[u8]) {
-        self.slot_key = Self::custom_md5(&key);
+        self.slot_key = Self::custom_md5(key);
     }
 
     fn expand_file_key(&mut self, key: &[u8]) {
-        self.file_key[..16].copy_from_slice(&Self::custom_md5(&key));
+        self.file_key[..16].copy_from_slice(&Self::custom_md5(key));
         self.file_key[16] = 0x6b;
     }
 

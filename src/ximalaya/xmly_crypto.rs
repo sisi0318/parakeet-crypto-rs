@@ -66,8 +66,8 @@ impl XimalayaCrypto {
         R: Read + Seek,
         W: Write,
     {
-        process_ximalaya_file(from, to, |header| self.encrypt_header(header))
-            .or(Err(DecryptorError::IOError))
+        process_ximalaya_file(from, to, |header| self.encrypt_header(header))?;
+        Ok(())
     }
 }
 
@@ -85,7 +85,7 @@ impl Decryptor for XimalayaCrypto {
         R: Read + Seek,
         W: Write,
     {
-        process_ximalaya_file(from, to, |header| self.decrypt_header(header))
-            .or(Err(DecryptorError::IOError))
+        process_ximalaya_file(from, to, |header| self.decrypt_header(header))?;
+        Ok(())
     }
 }

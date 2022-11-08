@@ -66,12 +66,10 @@ where
 
     // Detect file size.
     let mut bytes_left = from
-        .seek(SeekFrom::End(-(trim_right as i64)))
-        .or(Err(DecryptorError::IOError))? as usize;
+        .seek(SeekFrom::End(-(trim_right as i64)))? as usize;
 
     // Move back to the beginning of the stream.
-    from.seek(SeekFrom::Start(0))
-        .or(Err(DecryptorError::IOError))?;
+    from.seek(SeekFrom::Start(0))?;
 
     let mut block_id = 0usize;
     let mut buffer = [0u8; OTHER_SEGMENT_SIZE];
@@ -80,14 +78,12 @@ where
         ($block_len:expr, $decryptor_method:expr) => {
             if bytes_left > 0 {
                 let bytes_read = from
-                    .read(&mut buffer[..$block_len])
-                    .or(Err(DecryptorError::IOError))?
+                    .read(&mut buffer[..$block_len])?
                     .min(bytes_left);
 
                 $decryptor_method(&mut buffer[..bytes_read]);
 
-                to.write_all(&buffer[..bytes_read])
-                    .or(Err(DecryptorError::IOError))?;
+                to.write_all(&buffer[..bytes_read])?;
                 bytes_left -= bytes_read;
             }
         };

@@ -8,7 +8,7 @@ use parakeet_crypto::{
 
 use super::{
     logger::CliLogger,
-    utils::{CliBinaryContent, CliFilePath, CliFriendlyDecryptionError},
+    utils::{CliBinaryContent, CliFilePath},
 };
 
 /// Handle Kugou encryption/decryption.
@@ -80,11 +80,7 @@ pub fn cli_handle_kugou(args: KugouOptions) {
         kgm.decrypt(&mut input_file, &mut output_file)
     }
     .unwrap_or_else(|err| {
-        log.error(&format!(
-            "{} failed: {}",
-            operation,
-            err.to_friendly_error()
-        ));
+        log.error(&format!("{operation} failed: {err}"));
         process::exit(1)
     });
 

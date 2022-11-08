@@ -20,25 +20,21 @@ where
 {
     // Detect file size.
     let mut bytes_left = from
-        .seek(SeekFrom::End(-(trim_right as i64)))
-        .or(Err(DecryptorError::IOError))? as usize;
+        .seek(SeekFrom::End(-(trim_right as i64)))? as usize;
 
     // Move back to the beginning of the stream.
-    from.seek(SeekFrom::Start(0))
-        .or(Err(DecryptorError::IOError))?;
+    from.seek(SeekFrom::Start(0))?;
 
     // Decrypt a single block.
     macro_rules! decrypt_block {
         ($block:expr, $offset:expr) => {
             if bytes_left > 0 {
                 let bytes_read = from
-                    .read(&mut $block)
-                    .or(Err(DecryptorError::IOError))?
+                    .read(&mut $block)?
                     .min(bytes_left);
 
                 decryptor.decrypt_block(&mut $block[0..bytes_read], $offset);
-                to.write_all(&$block[0..bytes_read])
-                    .or(Err(DecryptorError::IOError))?;
+                to.write_all(&$block[0..bytes_read])?;
                 bytes_left -= bytes_read;
             }
         };
