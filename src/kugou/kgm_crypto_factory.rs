@@ -6,12 +6,10 @@ use super::{
     kgm_crypto_type3::KGMCryptoType3,
     kgm_crypto_type4::KGMCryptoType4,
     kgm_header::KGMHeader,
+    kgm_magic::{
+        KGM_EXPECTED_DECRYPTION_RESULT, KGM_HEADER, VPR_EXPECTED_DECRYPTION_RESULT, VPR_HEADER,
+    },
 };
-
-const EXPECTED_DECRYPTION_RESULT: [u8; 16] = [
-    0x38, 0x85, 0xED, 0x92, 0x79, 0x5F, 0xF8, 0x4C, //
-    0xB3, 0x03, 0x61, 0x41, 0x16, 0xA0, 0x1D, 0x47, //
-];
 
 #[inline]
 fn create_kgm_crypto(
@@ -43,16 +41,28 @@ fn create_kgm_crypto(
     }
 }
 
+#[inline]
+fn kgm_select_challenge_data(file_magic: &[u8; 16]) -> Result<[u8; 16], DecryptorError> {
+    if *file_magic == KGM_HEADER {
+        Ok(KGM_EXPECTED_DECRYPTION_RESULT)
+    } else if *file_magic == VPR_HEADER {
+        Ok(VPR_EXPECTED_DECRYPTION_RESULT)
+    } else {
+        Err(DecryptorError::KGMUnsupportedMagic)
+    }
+}
+
 pub fn create_kgm_decryptor(
     header: &KGMHeader,
     config: &KGMCryptoConfig,
 ) -> Result<Box<dyn KGMCrypto>, DecryptorError> {
     let mut decryptor = create_kgm_crypto(header, config)?;
+    let challenge_data = kgm_select_challenge_data(&header.magic)?;
 
     // Decryption test
     let mut test_data = header.decryptor_test_data;
     decryptor.decrypt(0, &mut test_data);
-    if EXPECTED_DECRYPTION_RESULT == test_data {
+    if challenge_data == test_data {
         Ok(decryptor)
     } else {
         Err(DecryptorError::KGMInvalidFileKey)
@@ -64,9 +74,10 @@ pub fn create_kgm_encryptor(
     config: &KGMCryptoConfig,
 ) -> Result<Box<dyn KGMCrypto>, DecryptorError> {
     let mut encryptor = create_kgm_crypto(header, config)?;
+    let challenge_data = kgm_select_challenge_data(&header.magic)?;
 
     // Key verification signature generation
-    header.decryptor_test_data = EXPECTED_DECRYPTION_RESULT;
+    header.decryptor_test_data = challenge_data;
     encryptor.encrypt(0, &mut header.decryptor_test_data);
 
     Ok(encryptor)

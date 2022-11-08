@@ -28,6 +28,8 @@ pub enum DecryptorError {
     KGMInvalidKeySlotError(u32),
     #[error("invalid kugou file key")]
     KGMInvalidFileKey,
+    #[error("unsupported kgm magic header")]
+    KGMUnsupportedMagic,
     #[error("unsupport kugou encryption type: {0}")]
     KGMUnsupportedEncryptionType(u32),
     #[error("both kugou v4 expansion tables are required.")]
