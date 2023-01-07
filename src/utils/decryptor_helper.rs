@@ -8,7 +8,7 @@ pub fn decrypt_full_stream<D, R, W>(
     opt_reserve_len: Option<usize>,
 ) -> Result<(), DecryptorError>
 where
-    D: StreamDecryptor,
+    D: StreamDecryptor + ?Sized,
     R: Read + Seek,
     W: Write,
 {

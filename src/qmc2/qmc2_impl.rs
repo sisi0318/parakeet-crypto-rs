@@ -1,5 +1,9 @@
-use super::tail_parser::QMCTailParser;
-use crate::interfaces::{Decryptor, DecryptorError};
+use super::{crypto_rc4::CryptoRC4, tail_parser::QMCTailParser};
+use crate::{
+    interfaces::{Decryptor, DecryptorError, StreamDecryptor},
+    utils::decrypt_full_stream,
+    QmcV1,
+};
 use std::io::{Read, Seek, Write};
 
 /// QMC2 decryptor for
@@ -10,6 +14,23 @@ pub struct QMC2 {
 impl QMC2 {
     pub fn new(parser: QMCTailParser) -> QMC2 {
         QMC2 { parser }
+    }
+
+    pub fn new_stream_decryptor(key: &[u8]) -> Box<dyn StreamDecryptor> {
+        match key.len() {
+            ..=300 => {
+                if let Some(qmc1) = QmcV1::new_map(key) {
+                    Box::new(qmc1)
+                } else {
+                    // Treat it as 256 key.
+                    let mut new_key = [0u8; 256];
+                    new_key[..key.len()].copy_from_slice(key);
+                    Box::new(QmcV1::new_map(&new_key).unwrap())
+                }
+            }
+
+            _ => Box::new(CryptoRC4::new(key)),
+        }
     }
 }
 
@@ -26,13 +47,9 @@ impl Decryptor for QMC2 {
         R: Read + Seek,
         W: Write,
     {
-        let (trim_right, embed_key) = self.parser.parse(from)?;
-
-        if embed_key.len() <= 300 {
-            super::crypto_map::decrypt_map(&embed_key, trim_right, from, to)
-        } else {
-            super::crypto_rc4::decrypt_rc4(&embed_key, trim_right, from, to)
-        }
+        let (trim_right, key) = self.parser.parse(from)?;
+        let mut decryptor = Self::new_stream_decryptor(&key[..]);
+        decrypt_full_stream(&mut *decryptor, from, to, Some(trim_right))
     }
 }
 
