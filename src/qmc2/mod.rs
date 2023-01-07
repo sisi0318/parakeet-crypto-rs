@@ -1,3 +1,4 @@
+mod tails;
 mod crypto_rc4;
 mod key_utils;
 mod utils_rc4;
