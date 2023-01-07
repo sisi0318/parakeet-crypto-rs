@@ -3,7 +3,7 @@ use std::{fs::File, process};
 use argh::FromArgs;
 use parakeet_crypto::{
     interfaces::Decryptor,
-    tencent::{qmc2, qmc2_footer_parser::QMCFooterParser},
+    qmc2::{qmc2_footer_parser::QMCFooterParser, QMC2},
 };
 
 use crate::cli::logger::CliLogger;
@@ -55,7 +55,7 @@ pub fn cli_handle_qmc2(args: QMC2Options) {
         process::exit(1);
     }
 
-    let mut qmc2_map = qmc2::QMC2::new(parser);
+    let mut qmc2_map = QMC2::new(parser);
     qmc2_map
         .decrypt(
             &mut File::open(args.input_file.path).unwrap(),
