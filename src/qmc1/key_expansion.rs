@@ -13,7 +13,7 @@ fn copy_slice<const REVERSE: bool>(destination: &mut [u8], source: &[u8]) {
 }
 
 #[inline]
-fn qmc_key_expansion_58_to_64<const REVERSE: bool>(key58: &[u8; 58], key64: &mut [u8]) {
+fn expand_key58_to_key64<const REVERSE: bool>(key58: &[u8; 58], key64: &mut [u8]) {
     let row_marker = key58[0];
     let col_marker = key58[1];
     let key56 = &key58[2..];
@@ -33,10 +33,20 @@ fn qmc_key_expansion_58_to_64<const REVERSE: bool>(key58: &[u8; 58], key64: &mut
 }
 
 #[inline]
-pub fn qmc_key_expansion_58_to_128(key58: &[u8; 58]) -> [u8; 128] {
+pub fn expand_key58_to_key128(key58: &[u8; 58]) -> [u8; 128] {
     let mut key128 = [0; 128];
-    qmc_key_expansion_58_to_64::<false>(key58, &mut key128[..64]);
-    qmc_key_expansion_58_to_64::<true>(key58, &mut key128[64..]);
+    expand_key58_to_key64::<false>(key58, &mut key128[..64]);
+    expand_key58_to_key64::<true>(key58, &mut key128[64..]);
+    key128
+}
+
+#[inline]
+pub fn reduce_key256_to_key128(key: &[u8; 256]) -> [u8; 128] {
+    let mut key128 = [0u8; 128];
+    for (i, v) in key128.iter_mut().enumerate() {
+        *v = key[(i * i) % key.len()];
+    }
+
     key128
 }
 
@@ -76,7 +86,7 @@ mod tests {
             0xfe, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, //
         ];
 
-        let actual = qmc_key_expansion_58_to_128(&input);
+        let actual = expand_key58_to_key128(&input);
         assert_eq!(actual, expected);
     }
 }

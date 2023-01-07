@@ -30,16 +30,13 @@ impl RC4QMC2 {
     pub fn derive_byte(&mut self) -> u8 {
         let n = self.state.len();
         self.i = self.i.wrapping_add(1).rem(n);
-        self.j = self
-            .j
-            .wrapping_add(self.state[self.i as usize] as usize)
-            .rem(n);
+        self.j = self.j.wrapping_add(self.state[self.i] as usize).rem(n);
 
         self.state.swap(self.i, self.j);
         let final_index = (self.state[self.i] as usize)
             .wrapping_add(self.state[self.j] as usize)
             .rem(n);
-        self.state[final_index as usize]
+        self.state[final_index]
     }
 }
 

@@ -2,7 +2,7 @@ use std::{fs::File, process};
 
 use argh::FromArgs;
 use parakeet_crypto::{
-    interfaces::decryptor::Decryptor,
+    interfaces::Decryptor,
     kugou::{self, kgm_crypto::KGMCryptoConfig, kgm_header::KGMHeader},
 };
 
@@ -59,7 +59,7 @@ pub fn cli_handle_kugou(args: KugouOptions) {
     // Configure key slots
     config.slot_keys.insert(1, args.slot_key_1.content);
 
-    let kgm = kugou::kgm_decryptor::KGM::new(&config);
+    let mut kgm = kugou::kgm_decryptor::KGM::new(&config);
     let mut input_file = File::open(args.input_file.path).unwrap();
     let mut output_file = File::create(args.output_file.path).unwrap();
 

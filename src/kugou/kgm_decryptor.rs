@@ -1,6 +1,6 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::interfaces::decryptor::{Decryptor, DecryptorError};
+use crate::interfaces::{Decryptor, DecryptorError};
 
 use super::{
     kgm_crypto::KGMCryptoConfig,
@@ -35,7 +35,7 @@ impl KGM {
         let header = header.to_bytes();
         to.write_all(&header)?;
 
-        let mut bytes_left = from.seek(SeekFrom::End(0))? as u64;
+        let mut bytes_left = from.seek(SeekFrom::End(0))?;
 
         from.seek(SeekFrom::Start(0))?;
 
@@ -65,7 +65,7 @@ impl Decryptor for KGM {
         create_kgm_decryptor(&header, &self.config).and(Ok(()))
     }
 
-    fn decrypt<R, W>(&self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
+    fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
     where
         R: Read + Seek,
         W: Write,
@@ -123,7 +123,7 @@ mod tests {
         config.v4_file_key_expand_table = v4_filekey_table.into();
         config.v4_slot_key_expand_table = v4_slotkey_table.into();
 
-        let kgm = super::KGM::new(&config);
+        let mut kgm = super::KGM::new(&config);
         kgm.decrypt(&mut file_encrypted, &mut decrypted_content)
             .unwrap();
 

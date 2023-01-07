@@ -1,4 +1,4 @@
-use crate::interfaces::decryptor::DecryptorError;
+use crate::interfaces::DecryptorError;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
@@ -135,7 +135,7 @@ impl QMCFooterParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interfaces::decryptor::DecryptorError;
+    use crate::interfaces::DecryptorError;
     use std::io::Cursor;
 
     const TEST_KEY_SEED: u8 = 123;

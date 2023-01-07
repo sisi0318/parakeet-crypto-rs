@@ -1,5 +1,5 @@
 use super::qmc2_footer_parser::QMCFooterParser;
-use crate::interfaces::decryptor::{Decryptor, DecryptorError};
+use crate::interfaces::{Decryptor, DecryptorError};
 use std::io::{Read, Seek, Write};
 
 /// QMC2 decryptor for
@@ -21,7 +21,7 @@ impl Decryptor for QMC2 {
         self.parser.parse(from).and(Ok(()))
     }
 
-    fn decrypt<R, W>(&self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
+    fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
     where
         R: Read + Seek,
         W: Write,
@@ -59,7 +59,7 @@ mod tests {
         let path_source = d.join("sample/test_121529_32kbps.ogg");
         let mut decrypted_content = Vec::new();
 
-        let qmc2 = super::QMC2::new(QMCFooterParser::new_enc_v2(
+        let mut qmc2 = super::QMC2::new(QMCFooterParser::new_enc_v2(
             TEST_KEY_SEED,
             *TEST_KEY_STAGE1,
             *TEST_KEY_STAGE2,
@@ -69,6 +69,8 @@ mod tests {
         let source_content = fs::read(path_source.as_path()).unwrap();
         qmc2.decrypt(&mut file_encrypted, &mut decrypted_content)
             .unwrap();
+
+        fs::write("/tmp/qmc2_map.ogg", &decrypted_content).unwrap();
 
         assert_eq!(source_content, decrypted_content, "mismatched content");
     }

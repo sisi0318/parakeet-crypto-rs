@@ -1,6 +1,6 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::{interfaces::decryptor::DecryptorError, utils::rc4_qmc2::RC4QMC2};
+use crate::{interfaces::DecryptorError, utils::rc4_qmc2::RC4QMC2};
 
 use super::key_utils::{calculate_key_hash, get_segment_key};
 

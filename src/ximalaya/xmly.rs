@@ -1,4 +1,4 @@
-use crate::interfaces::decryptor::DecryptorError;
+use crate::interfaces::DecryptorError;
 
 use super::xmly_crypto::XimalayaCrypto;
 
@@ -27,7 +27,7 @@ pub fn new_from_key(
 
 #[cfg(test)]
 mod tests {
-    use crate::interfaces::decryptor::Decryptor;
+    use crate::interfaces::Decryptor;
 
     use std::{
         fs::{self, File},
@@ -55,7 +55,7 @@ mod tests {
             *item = u16::from_le_bytes(buffer) as usize;
         }
 
-        let decryptor = super::new_from_key(&content_key, &scramble_table).unwrap();
+        let mut decryptor = super::new_from_key(&content_key, &scramble_table).unwrap();
         decryptor
             .decrypt(&mut file_encrypted, &mut decrypted_content)
             .unwrap();

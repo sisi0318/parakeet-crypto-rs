@@ -1,6 +1,6 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::interfaces::decryptor::{Decryptor, DecryptorError};
+use crate::interfaces::{Decryptor, DecryptorError};
 
 #[derive(Debug, Clone, Copy)]
 pub struct XimalayaCrypto {
@@ -80,7 +80,7 @@ impl Decryptor for XimalayaCrypto {
         Ok(())
     }
 
-    fn decrypt<R, W>(&self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
+    fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
     where
         R: Read + Seek,
         W: Write,

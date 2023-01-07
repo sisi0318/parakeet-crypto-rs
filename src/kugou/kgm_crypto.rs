@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::interfaces::decryptor::DecryptorError;
+use crate::interfaces::DecryptorError;
 
 #[derive(Debug, Default, Clone)]
 pub struct KGMCryptoConfig {
