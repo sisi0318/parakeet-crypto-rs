@@ -1,8 +1,11 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::{interfaces::DecryptorError, utils::rc4_qmc2::RC4QMC2};
+use crate::interfaces::DecryptorError;
 
-use super::key_utils::{calculate_key_hash, get_segment_key};
+use super::{
+    key_utils::{calculate_key_hash, get_segment_key},
+    utils_rc4::RC4,
+};
 
 const FIRST_SEGMENT_SIZE: usize = 0x0080;
 const OTHER_SEGMENT_SIZE: usize = 0x1400;
@@ -14,7 +17,7 @@ const OTHER_SEGMENT_SIZE: usize = 0x1400;
 ///     where the first 0x80 bytes were discarded.
 ///   - Rest of the segments (each 0x1400 bytes, segment_id = 1, 2, 3, ...)
 struct QMC2RC4 {
-    rc4: RC4QMC2,
+    rc4: RC4,
     key: Box<[u8]>,
     key_hash: u64,
 }
@@ -26,7 +29,7 @@ impl QMC2RC4 {
         Self {
             key: Box::from(key),
             key_hash: calculate_key_hash(key) as u64,
-            rc4: RC4QMC2::new(key),
+            rc4: RC4::new(key),
         }
     }
 
@@ -44,11 +47,8 @@ impl QMC2RC4 {
         let discards = get_segment_key(self.key_hash, id as u64, seed) & 0x1FF;
 
         let mut rc4 = self.rc4.clone();
-        rc4.skip(discards + extra_discard);
-
-        for v in block.iter_mut() {
-            *v ^= rc4.derive_byte();
-        }
+        rc4.discard(discards + extra_discard);
+        rc4.derive(block);
     }
 }
 

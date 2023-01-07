@@ -36,7 +36,7 @@ pub fn get_segment_key(key_hash: u64, id: u64, seed: u64) -> usize {
     if seed == 0 {
         0
     } else {
-        100u64.wrapping_mul(key_hash).div(seed.wrapping_mul(id + 1)) as usize
+        key_hash.wrapping_mul(100).div(seed.wrapping_mul(id + 1)) as usize
     }
 }
 

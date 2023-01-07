@@ -1,5 +1,4 @@
 pub mod rc4;
-pub mod rc4_qmc2;
 pub mod xor_helper;
 
 mod decryptor_helper;

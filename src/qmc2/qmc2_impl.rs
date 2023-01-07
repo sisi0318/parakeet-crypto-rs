@@ -1,14 +1,14 @@
-use super::qmc2_footer_parser::QMCFooterParser;
+use super::tail_parser::QMCTailParser;
 use crate::interfaces::{Decryptor, DecryptorError};
 use std::io::{Read, Seek, Write};
 
 /// QMC2 decryptor for
 pub struct QMC2 {
-    parser: QMCFooterParser,
+    parser: QMCTailParser,
 }
 
 impl QMC2 {
-    pub fn new(parser: QMCFooterParser) -> QMC2 {
+    pub fn new(parser: QMCTailParser) -> QMC2 {
         QMC2 { parser }
     }
 }
@@ -29,9 +29,9 @@ impl Decryptor for QMC2 {
         let (trim_right, embed_key) = self.parser.parse(from)?;
 
         if embed_key.len() <= 300 {
-            super::qmc2_decryptor_map::decrypt_map(&embed_key, trim_right, from, to)
+            super::crypto_map::decrypt_map(&embed_key, trim_right, from, to)
         } else {
-            super::qmc2_decryptor_rc4::decrypt_rc4(&embed_key, trim_right, from, to)
+            super::crypto_rc4::decrypt_rc4(&embed_key, trim_right, from, to)
         }
     }
 }
@@ -59,7 +59,7 @@ mod tests {
         let path_source = d.join("sample/test_121529_32kbps.ogg");
         let mut decrypted_content = Vec::new();
 
-        let mut qmc2 = super::QMC2::new(QMCFooterParser::new_enc_v2(
+        let mut qmc2 = super::QMC2::new(QMCTailParser::new_enc_v2(
             TEST_KEY_SEED,
             *TEST_KEY_STAGE1,
             *TEST_KEY_STAGE2,

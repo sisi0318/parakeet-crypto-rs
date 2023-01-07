@@ -12,15 +12,15 @@ const ENC_V2_PREFIX_TAG: &[u8] = b"QQMusic EncV2,Key:";
 /// QMC2's file footer parser.
 /// This parser is used to extract the file key for decryption, as well as the
 ///   number of bytes to ignore in the end of the file.
-pub struct QMCFooterParser {
+pub struct QMCTailParser {
     seed: u8,
     enc_v2_key_stage1: [u8; 16],
     enc_v2_key_stage2: [u8; 16],
 }
 
-impl QMCFooterParser {
-    pub fn new(seed: u8) -> QMCFooterParser {
-        QMCFooterParser {
+impl QMCTailParser {
+    pub fn new(seed: u8) -> QMCTailParser {
+        QMCTailParser {
             seed,
             enc_v2_key_stage1: [0u8; 16],
             enc_v2_key_stage2: [0u8; 16],
@@ -31,8 +31,8 @@ impl QMCFooterParser {
         seed: u8,
         enc_v2_key_stage1: [u8; 16],
         enc_v2_key_stage2: [u8; 16],
-    ) -> QMCFooterParser {
-        QMCFooterParser {
+    ) -> QMCTailParser {
+        QMCTailParser {
             seed,
             enc_v2_key_stage1,
             enc_v2_key_stage2,
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn parse_v1_pc() {
-        let parser = QMCFooterParser::new(TEST_KEY_SEED);
+        let parser = QMCTailParser::new(TEST_KEY_SEED);
         let mut footer = create_default_key_v1().to_vec();
         let mut footer_len = (footer.len() as u32).to_le_bytes().to_vec();
         footer.append(&mut footer_len);
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn parse_v2_pc() {
-        let parser = QMCFooterParser::new_enc_v2(TEST_KEY_SEED, *TEST_KEY_STAGE1, *TEST_KEY_STAGE2);
+        let parser = QMCTailParser::new_enc_v2(TEST_KEY_SEED, *TEST_KEY_STAGE1, *TEST_KEY_STAGE2);
         let mut footer = create_default_key_v2().to_vec();
         let mut footer_len = (footer.len() as u32).to_le_bytes().to_vec();
         footer.append(&mut footer_len);
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn parse_v2_q_tag() {
-        let parser = QMCFooterParser::new_enc_v2(TEST_KEY_SEED, *TEST_KEY_STAGE1, *TEST_KEY_STAGE2);
+        let parser = QMCTailParser::new_enc_v2(TEST_KEY_SEED, *TEST_KEY_STAGE1, *TEST_KEY_STAGE2);
         let mut footer = create_default_key_v2().to_vec();
         let mut tmp = Vec::from(b",12345,2" as &[u8]);
         footer.append(&mut tmp);
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn parse_non_sense() {
-        let parser = QMCFooterParser::new(0);
+        let parser = QMCTailParser::new(0);
         let footer = vec![0xff, 0xff, 0xff, 0xff];
         let mut stream = Cursor::new(footer);
         assert!(
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn parse_android_s_tag() {
-        let parser = QMCFooterParser::new(0);
+        let parser = QMCTailParser::new(0);
         let footer = b"1111STag".to_vec();
         let mut stream = Cursor::new(footer);
         //使用 `matches!` 来匹配enum
