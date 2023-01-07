@@ -18,7 +18,7 @@ impl QMC2 {
 
     pub fn new_stream_decryptor(key: &[u8]) -> Box<dyn StreamDecryptor> {
         match key.len() {
-            ..=300 => {
+            usize::MIN..=300 => {
                 if let Some(qmc1) = QmcV1::new_map(key) {
                     Box::new(qmc1)
                 } else {
