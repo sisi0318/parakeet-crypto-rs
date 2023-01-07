@@ -70,8 +70,6 @@ mod tests {
         qmc2.decrypt(&mut file_encrypted, &mut decrypted_content)
             .unwrap();
 
-        fs::write("/tmp/qmc2_map.ogg", &decrypted_content).unwrap();
-
         assert_eq!(source_content, decrypted_content, "mismatched content");
     }
 
