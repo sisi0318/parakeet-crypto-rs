@@ -1,4 +1,5 @@
 use crate::interfaces::DecryptorError;
+use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
@@ -67,7 +68,7 @@ impl QMCTailParser {
         .ok_or_else(|| DecryptorError::QMCInvalidFooter(Box::new(tail_magic)))?;
 
         let encrypted_key = str::from_utf8(&encrypted_key)?.trim_end_matches(char::from(0));
-        let encrypted_key = base64::decode(encrypted_key)?;
+        let encrypted_key = Base64.decode(encrypted_key)?;
 
         let key = if encrypted_key.starts_with(ENC_V2_PREFIX_TAG) {
             self.decrypt_key_v2(&encrypted_key[ENC_V2_PREFIX_TAG.len()..])
@@ -123,7 +124,7 @@ mod tests {
         let second_half_encrypted = tc_tea::encrypt(body, tea_key).unwrap();
         let embed_key = [header, &second_half_encrypted].concat();
 
-        base64::encode(embed_key).as_bytes().into()
+        Base64.encode(embed_key).as_bytes().into()
     }
 
     fn create_default_key_v2() -> Box<[u8]> {
@@ -135,7 +136,7 @@ mod tests {
 
         let embed_key_v2 = [ENC_V2_PREFIX_TAG, &embed_key_v2].concat();
 
-        base64::encode(embed_key_v2).as_bytes().into()
+        Base64.encode(embed_key_v2).as_bytes().into()
     }
 
     #[test]

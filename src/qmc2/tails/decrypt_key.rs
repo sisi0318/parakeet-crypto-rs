@@ -1,6 +1,6 @@
-use std::ops::Mul;
-
 use crate::interfaces::DecryptorError;
+use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
+use std::ops::Mul;
 
 use super::QMCTailParser;
 
@@ -44,7 +44,7 @@ impl QMCTailKeyDecryptor for QMCTailParser {
             .and_then(|key| tc_tea::decrypt(key, self.enc_v2_key_stage2))
             .ok_or(DecryptorError::TEADecryptError)?;
         let key = std::str::from_utf8(&key)?;
-        let key = base64::decode(key)?;
+        let key = Base64.decode(key)?;
 
         self.decrypt_key_v1(&key)
     }
