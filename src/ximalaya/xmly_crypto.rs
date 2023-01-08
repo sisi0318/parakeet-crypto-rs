@@ -1,11 +1,15 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::interfaces::{Decryptor, DecryptorError};
+use crate::interfaces::{DecryptorError, StreamDecryptor};
+
+const SCRAMBLE_HEADER_LEN: usize = 1024;
 
 #[derive(Debug, Clone, Copy)]
 pub struct XimalayaCrypto {
+    offset: usize,
     content_key: [u8; 32],
-    scramble_table: [usize; 1024],
+    scramble_table: [usize; SCRAMBLE_HEADER_LEN],
+    header_buffer: [u8; SCRAMBLE_HEADER_LEN],
 }
 
 pub fn process_ximalaya_file<F, R, W>(
@@ -31,14 +35,19 @@ where
 }
 
 impl XimalayaCrypto {
-    pub fn new(content_key: &[u8; 32], scramble_table: &[usize; 1024]) -> Self {
+    pub fn new(content_key: &[u8; 32], scramble_table: &[usize; SCRAMBLE_HEADER_LEN]) -> Self {
         Self {
+            offset: 0,
             content_key: *content_key,
             scramble_table: *scramble_table,
+            header_buffer: [0u8; SCRAMBLE_HEADER_LEN],
         }
     }
 
-    pub fn decrypt_header(&self, encrypted: &[u8; 1024]) -> [u8; 1024] {
+    pub fn decrypt_header(
+        &self,
+        encrypted: &[u8; SCRAMBLE_HEADER_LEN],
+    ) -> [u8; SCRAMBLE_HEADER_LEN] {
         let mut decrypted = *encrypted;
 
         for (di, &ei) in self.scramble_table.iter().enumerate() {
@@ -49,7 +58,10 @@ impl XimalayaCrypto {
         decrypted
     }
 
-    pub fn encrypt_header(&self, decrypted: &[u8; 1024]) -> [u8; 1024] {
+    pub fn encrypt_header(
+        &self,
+        decrypted: &[u8; SCRAMBLE_HEADER_LEN],
+    ) -> [u8; SCRAMBLE_HEADER_LEN] {
         let mut encrypted = *decrypted;
         let reverse_scramble_table = self.scramble_table;
 
@@ -71,21 +83,47 @@ impl XimalayaCrypto {
     }
 }
 
-impl Decryptor for XimalayaCrypto {
-    fn check<R>(&self, _from: &mut R) -> Result<(), DecryptorError>
-    where
-        R: Read + Seek,
-    {
-        // TODO: Verify decrypted header after implementing AudioHeader checker.
-        Ok(())
-    }
+impl StreamDecryptor for XimalayaCrypto {
+    fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
+        let mut consume_len = 0usize;
 
-    fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
-    where
-        R: Read + Seek,
-        W: Write,
-    {
-        process_ximalaya_file(from, to, |header| self.decrypt_header(header))?;
-        Ok(())
+        let input_len = src.len();
+        let mut src = src;
+        let mut dst = dst;
+
+        let mut offset = self.offset;
+        if offset < self.header_buffer.len() {
+            // Copy data from source
+            let copy_len = std::cmp::min(SCRAMBLE_HEADER_LEN - offset, input_len);
+            self.header_buffer[offset..offset + copy_len].copy_from_slice(&src[..copy_len]);
+
+            src = &src[copy_len..];
+            offset += copy_len;
+            consume_len += copy_len;
+        }
+
+        if offset == SCRAMBLE_HEADER_LEN {
+            if dst.len() < SCRAMBLE_HEADER_LEN {
+                return Err(DecryptorError::OutputBufferTooSmallWithHint(
+                    consume_len + src.len(),
+                ));
+            }
+
+            let header_buffer = self.header_buffer;
+            dst[..SCRAMBLE_HEADER_LEN].copy_from_slice(&self.decrypt_header(&header_buffer));
+            dst = &mut dst[SCRAMBLE_HEADER_LEN..];
+        }
+
+        if dst.len() < src.len() {
+            return Err(DecryptorError::OutputBufferTooSmallWithHint(
+                consume_len + src.len(),
+            ));
+        }
+
+        dst[..src.len()].copy_from_slice(src);
+        consume_len += src.len();
+
+        self.offset += input_len;
+        Ok(consume_len)
     }
 }

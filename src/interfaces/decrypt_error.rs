@@ -6,6 +6,8 @@ use thiserror::Error;
 pub enum DecryptorError {
     #[error("output buffer is too small")]
     OutputBufferTooSmall,
+    #[error("output buffer is too small, suggested size = {0}")]
+    OutputBufferTooSmallWithHint(usize),
     #[error("input buffer size does not match output buffer size")]
     InputOutputBufferLenMismatch,
 
