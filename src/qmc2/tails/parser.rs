@@ -1,21 +1,18 @@
 use crate::interfaces::DecryptorError;
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
-use super::key_utils::make_simple_key;
+use super::{guess_type, parse_tail_pc, parse_tail_qtag, ClientType, QMCTailKeyDecryptor};
 
-const MAGIC_ANDROID_S_TAG: u32 = u32::from_le_bytes(*b"STag");
-const MAGIC_ANDROID_Q_TAG: u32 = u32::from_le_bytes(*b"QTag");
 const ENC_V2_PREFIX_TAG: &[u8] = b"QQMusic EncV2,Key:";
 
 /// QMC2's file footer parser.
 /// This parser is used to extract the file key for decryption, as well as the
 ///   number of bytes to ignore in the end of the file.
 pub struct QMCTailParser {
-    seed: u8,
-    enc_v2_key_stage1: [u8; 16],
-    enc_v2_key_stage2: [u8; 16],
+    pub(super) seed: u8,
+    pub(super) enc_v2_key_stage1: [u8; 16],
+    pub(super) enc_v2_key_stage2: [u8; 16],
 }
 
 impl QMCTailParser {
@@ -51,91 +48,58 @@ impl QMCTailParser {
         self.enc_v2_key_stage2 = key;
     }
 
-    pub fn parse<R>(&self, input: &mut R) -> Result<(usize, Box<[u8]>), DecryptorError>
+    pub fn parse_from_buffer(&self, tail: &[u8]) -> Result<(usize, Box<[u8]>), DecryptorError> {
+        if tail.len() < 4 {
+            return Err(DecryptorError::QMCTailBufferTooSmall);
+        }
+
+        let mut tail_magic = [0u8; 4];
+        tail_magic.copy_from_slice(&tail[tail.len() - 4..]);
+
+        let client_type = guess_type(&tail_magic)
+            .ok_or_else(|| DecryptorError::QMCInvalidFooter(Box::new(tail_magic)))?;
+
+        let (full_tail_len, encrypted_key) = match client_type {
+            ClientType::AndroidSTag => return Err(DecryptorError::QMCAndroidSTag),
+            ClientType::AndroidQTag => parse_tail_qtag(&tail),
+            ClientType::PC => parse_tail_pc(&tail),
+        }
+        .ok_or_else(|| DecryptorError::QMCInvalidFooter(Box::new(tail_magic)))?;
+
+        let encrypted_key = str::from_utf8(&encrypted_key)?.trim_end_matches(char::from(0));
+        let encrypted_key = base64::decode(encrypted_key)?;
+
+        let key = if encrypted_key.starts_with(ENC_V2_PREFIX_TAG) {
+            self.decrypt_key_v2(&encrypted_key[ENC_V2_PREFIX_TAG.len()..])
+        } else {
+            self.decrypt_key_v1(&encrypted_key)
+        }?;
+
+        Ok((full_tail_len, key))
+    }
+
+    pub fn parse_from_stream<R>(&self, input: &mut R) -> Result<(usize, Box<[u8]>), DecryptorError>
     where
         R: Read + Seek,
     {
-        input.seek(SeekFrom::End(-4))?;
+        let file_len = input.seek(SeekFrom::End(0))? as usize;
 
-        let magic = input.read_u32::<LittleEndian>()?;
+        // known largest tail size is 0x225 (549) bytes.
+        const BUFFER_TAIL_DEFAULT_READ_LEN: usize = 0x400;
 
-        let (trim_right, embed_key) = match magic {
-            MAGIC_ANDROID_S_TAG => return Err(DecryptorError::QMCAndroidSTag),
-            MAGIC_ANDROID_Q_TAG => {
-                input.seek(SeekFrom::End(-8))?;
+        let read_len = std::cmp::min(file_len, BUFFER_TAIL_DEFAULT_READ_LEN);
+        let mut buffer_full_tail = vec![0u8; read_len];
+        input.seek(SeekFrom::End(-(read_len as i64)))?;
+        input.read_exact(&mut buffer_full_tail)?;
 
-                let meta_size = input.read_u32::<BigEndian>()?;
-
-                let trim_right = meta_size as usize + 8;
-
-                let mut buffer = vec![0u8; meta_size as usize];
-                input.seek(SeekFrom::End(-8 - (meta_size as i64)))?;
-                input.read_exact(&mut buffer)?;
-
-                let embed_key_size = buffer
-                    .iter()
-                    .position(|v| *v == b',')
-                    .ok_or(DecryptorError::QMCAndroidQTagInvalid)?;
-
-                buffer.truncate(embed_key_size);
-
-                (trim_right, buffer)
-            }
-            0..=0x400 => {
-                input.seek(SeekFrom::End(-4 - (magic as i64)))?;
-
-                let trim_right = magic as usize + 4;
-
-                let mut buffer = vec![0u8; magic as usize];
-                input.read_exact(&mut buffer)?;
-
-                (trim_right, buffer)
-            }
-            _ => return Err(DecryptorError::QMCInvalidFooter(magic)),
-        };
-
-        let embed_key = str::from_utf8(&embed_key)?;
-        let embed_key = embed_key.trim_end_matches(char::from(0));
-        let embed_key = base64::decode(embed_key)?;
-
-        if embed_key.starts_with(ENC_V2_PREFIX_TAG) {
-            self.decrypt_key_v2(&embed_key[ENC_V2_PREFIX_TAG.len()..])
-        } else {
-            self.decrypt_key_v1(&embed_key)
-        }
-        .map(|r| (trim_right, r))
-    }
-
-    fn decrypt_key_v1(&self, embed_key: &[u8]) -> Result<Box<[u8]>, DecryptorError> {
-        let (header, body) = embed_key.split_at(8);
-        let simple_key = make_simple_key(self.seed, 8);
-
-        let mut tea_key = [0u8; 16];
-        for i in (0..16).step_by(2) {
-            tea_key[i] = simple_key[i / 2];
-            tea_key[i + 1] = header[i / 2];
-        }
-
-        let final_key = tc_tea::decrypt(body, tea_key).ok_or(DecryptorError::TEADecryptError)?;
-
-        Ok([header, &final_key].concat().into())
-    }
-
-    fn decrypt_key_v2(&self, embed_key: &[u8]) -> Result<Box<[u8]>, DecryptorError> {
-        let key = tc_tea::decrypt(embed_key, self.enc_v2_key_stage1)
-            .and_then(|key| tc_tea::decrypt(key, self.enc_v2_key_stage2))
-            .ok_or(DecryptorError::TEADecryptError)?;
-        let key = str::from_utf8(&key)?;
-        let key = base64::decode(key)?;
-
-        self.decrypt_key_v1(&key)
+        self.parse_from_buffer(&buffer_full_tail[..])
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interfaces::DecryptorError;
+    use crate::{interfaces::DecryptorError, qmc2::tails::make_simple_key};
     use std::io::Cursor;
 
     const TEST_KEY_SEED: u8 = 123;
@@ -184,7 +148,7 @@ mod tests {
         let expected_trim_right = footer.len();
         let mut stream = Cursor::new(footer);
 
-        let (trim_right, decrypted) = parser.parse(&mut stream).unwrap();
+        let (trim_right, decrypted) = parser.parse_from_stream(&mut stream).unwrap();
         assert_eq!(trim_right, expected_trim_right);
         assert_eq!(decrypted.to_vec(), b"12345678Some Key".to_vec());
     }
@@ -199,7 +163,7 @@ mod tests {
         let expected_trim_right = footer.len();
         let mut stream = Cursor::new(footer);
 
-        let (trim_right, decrypted) = parser.parse(&mut stream).unwrap();
+        let (trim_right, decrypted) = parser.parse_from_stream(&mut stream).unwrap();
         assert_eq!(trim_right, expected_trim_right);
         assert_eq!(decrypted.to_vec(), b"12345678Some Key".to_vec());
     }
@@ -218,7 +182,7 @@ mod tests {
         let expected_trim_right = footer.len();
         let mut stream = Cursor::new(footer);
 
-        let (trim_right, decrypted) = parser.parse(&mut stream).unwrap();
+        let (trim_right, decrypted) = parser.parse_from_stream(&mut stream).unwrap();
         assert_eq!(trim_right, expected_trim_right);
         assert_eq!(decrypted.to_vec(), b"12345678Some Key".to_vec());
     }
@@ -229,7 +193,7 @@ mod tests {
         let footer = vec![0xff, 0xff, 0xff, 0xff];
         let mut stream = Cursor::new(footer);
         assert!(
-            parser.parse(&mut stream).is_err(),
+            parser.parse_from_stream(&mut stream).is_err(),
             "should not allow 0xffffffff magic"
         )
     }
@@ -237,11 +201,11 @@ mod tests {
     #[test]
     fn parse_android_s_tag() {
         let parser = QMCTailParser::new(0);
-        let footer = b"1111STag".to_vec();
+        let footer = b"unused padding ..... 1111STag".to_vec();
         let mut stream = Cursor::new(footer);
         //使用 `matches!` 来匹配enum
         assert!(matches!(
-            parser.parse(&mut stream).unwrap_err(),
+            parser.parse_from_stream(&mut stream).unwrap_err(),
             DecryptorError::QMCAndroidSTag
         ));
     }

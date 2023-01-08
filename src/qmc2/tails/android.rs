@@ -1,4 +1,4 @@
-pub fn parse_tail_QTag(buffer: &[u8]) -> Option<(usize, Vec<u8>)> {
+pub fn parse_tail_qtag(buffer: &[u8]) -> Option<(usize, Vec<u8>)> {
     let buf_len = buffer.len();
     if buf_len < 8 {
         return None;
@@ -12,12 +12,12 @@ pub fn parse_tail_QTag(buffer: &[u8]) -> Option<(usize, Vec<u8>)> {
     let meta_len = u32::from_be_bytes(*meta_len) as usize;
     let full_payload_len = meta_len + 8;
 
-    if buf_len < full_payload_len {
+    if full_payload_len > buf_len {
         return None;
     }
 
-    let meta_start = buf_len - 8 - meta_len;
-    let embed_key_size = buffer.iter().position(|&v| v == b',')?;
+    let meta_start = buf_len - full_payload_len;
+    let embed_key_size = buffer[meta_start..].iter().position(|&v| v == b',')?;
     let embed_key = buffer[meta_start..meta_start + embed_key_size].to_vec();
 
     Some((full_payload_len, embed_key))

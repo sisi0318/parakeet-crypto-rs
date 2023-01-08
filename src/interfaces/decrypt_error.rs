@@ -15,8 +15,10 @@ pub enum DecryptorError {
     NotImplementedError(String),
     #[error("QMC Static Cipher init failed - is key length correct?")]
     QMCv1InitFailed,
-    #[error("QMC parse error - footer magic: {}",hex::encode(.0.to_be_bytes()))]
-    QMCInvalidFooter(u32),
+    #[error("QMC parse error - footer magic number: {}", hex::encode(.0))]
+    QMCInvalidFooter(Box<[u8]>),
+    #[error("QMC init error - tail detection buffer too small")]
+    QMCTailBufferTooSmall,
     #[error("Parsing 'STag' file failed.")]
     QMCAndroidSTag,
     #[error("Parsing 'QTag' file failed.")]

@@ -1,4 +1,4 @@
-use super::{crypto_rc4::CryptoRC4, tail_parser::QMCTailParser};
+use super::{crypto_rc4::CryptoRC4, tails};
 use crate::{
     interfaces::{Decryptor, DecryptorError, StreamDecryptor},
     utils::decrypt_full_stream,
@@ -8,11 +8,11 @@ use std::io::{Read, Seek, Write};
 
 /// QMC2 decryptor for
 pub struct QMC2 {
-    parser: QMCTailParser,
+    parser: tails::QMCTailParser,
 }
 
 impl QMC2 {
-    pub fn new(parser: QMCTailParser) -> QMC2 {
+    pub fn new(parser: tails::QMCTailParser) -> QMC2 {
         QMC2 { parser }
     }
 
@@ -39,7 +39,7 @@ impl Decryptor for QMC2 {
     where
         R: Read + Seek,
     {
-        self.parser.parse(from).and(Ok(()))
+        self.parser.parse_from_stream(from).and(Ok(()))
     }
 
     fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
@@ -47,7 +47,7 @@ impl Decryptor for QMC2 {
         R: Read + Seek,
         W: Write,
     {
-        let (trim_right, key) = self.parser.parse(from)?;
+        let (trim_right, key) = self.parser.parse_from_stream(from)?;
         let mut decryptor = Self::new_stream_decryptor(&key[..]);
         decrypt_full_stream(&mut *decryptor, from, to, Some(trim_right))
     }
@@ -76,7 +76,7 @@ mod tests {
         let path_source = d.join("sample/test_121529_32kbps.ogg");
         let mut decrypted_content = Vec::new();
 
-        let mut qmc2 = super::QMC2::new(QMCTailParser::new_enc_v2(
+        let mut qmc2 = super::QMC2::new(tails::QMCTailParser::new_enc_v2(
             TEST_KEY_SEED,
             *TEST_KEY_STAGE1,
             *TEST_KEY_STAGE2,
