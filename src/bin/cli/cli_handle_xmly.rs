@@ -1,7 +1,7 @@
 use std::{fs::File, process};
 
 use argh::FromArgs;
-use parakeet_crypto::{interfaces::decryptor::Decryptor, ximalaya};
+use parakeet_crypto::{interfaces::Decryptor, ximalaya};
 
 use super::{
     logger::CliLogger,
@@ -60,7 +60,7 @@ pub fn cli_handle_xmly(args: XimalayaOptions) {
         "Decryption"
     };
 
-    let xmly =
+    let mut xmly =
         ximalaya::new_from_key(&args.key.content[..], &scramble_table).unwrap_or_else(|err| {
             log.error(&format!(
                 "Create encryptor/decryptor using key failed: {err}"

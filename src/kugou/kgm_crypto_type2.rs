@@ -1,4 +1,4 @@
-use crate::interfaces::decryptor::DecryptorError;
+use crate::interfaces::DecryptorError;
 
 use super::kgm_crypto::{KGMCrypto, KGMCryptoConfig};
 

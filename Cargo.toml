@@ -1,6 +1,6 @@
 [package]
 name = "parakeet-crypto"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [[bin]]
@@ -11,7 +11,7 @@ name = "parakeet_cli"
 [dependencies]
 argh = "0.1.9"
 byteorder = "1.4.3"
-base64 = "0.13.1"
+base64 = "0.21.0"
 tc_tea = "0.1.4"
 md-5 = "0.10.5"
 hex = "0.4.3"

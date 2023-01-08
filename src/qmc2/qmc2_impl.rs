@@ -1,15 +1,36 @@
-use super::qmc2_footer_parser::QMCFooterParser;
-use crate::interfaces::decryptor::{Decryptor, DecryptorError};
+use super::{crypto_rc4::CryptoRC4, tails};
+use crate::{
+    interfaces::{Decryptor, DecryptorError, StreamDecryptor},
+    utils::decrypt_full_stream,
+    QmcV1,
+};
 use std::io::{Read, Seek, Write};
 
 /// QMC2 decryptor for
 pub struct QMC2 {
-    parser: QMCFooterParser,
+    parser: tails::QMCTailParser,
 }
 
 impl QMC2 {
-    pub fn new(parser: QMCFooterParser) -> QMC2 {
+    pub fn new(parser: tails::QMCTailParser) -> QMC2 {
         QMC2 { parser }
+    }
+
+    pub fn new_stream_decryptor(key: &[u8]) -> Box<dyn StreamDecryptor> {
+        match key.len() {
+            usize::MIN..=300 => {
+                if let Some(qmc1) = QmcV1::new_map(key) {
+                    Box::new(qmc1)
+                } else {
+                    // Treat it as 256 key.
+                    let mut new_key = [0u8; 256];
+                    new_key[..key.len()].copy_from_slice(key);
+                    Box::new(QmcV1::new_map(&new_key).unwrap())
+                }
+            }
+
+            _ => Box::new(CryptoRC4::new(key)),
+        }
     }
 }
 
@@ -18,21 +39,17 @@ impl Decryptor for QMC2 {
     where
         R: Read + Seek,
     {
-        self.parser.parse(from).and(Ok(()))
+        self.parser.parse_from_stream(from).and(Ok(()))
     }
 
-    fn decrypt<R, W>(&self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
+    fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
     where
         R: Read + Seek,
         W: Write,
     {
-        let (trim_right, embed_key) = self.parser.parse(from)?;
-
-        if embed_key.len() <= 300 {
-            super::qmc2_decryptor_map::decrypt_map(&embed_key, trim_right, from, to)
-        } else {
-            super::qmc2_decryptor_rc4::decrypt_rc4(&embed_key, trim_right, from, to)
-        }
+        let (trim_right, key) = self.parser.parse_from_stream(from)?;
+        let mut decryptor = Self::new_stream_decryptor(&key[..]);
+        decrypt_full_stream(&mut *decryptor, from, to, Some(trim_right))
     }
 }
 
@@ -59,7 +76,7 @@ mod tests {
         let path_source = d.join("sample/test_121529_32kbps.ogg");
         let mut decrypted_content = Vec::new();
 
-        let qmc2 = super::QMC2::new(QMCFooterParser::new_enc_v2(
+        let mut qmc2 = super::QMC2::new(tails::QMCTailParser::new_enc_v2(
             TEST_KEY_SEED,
             *TEST_KEY_STAGE1,
             *TEST_KEY_STAGE2,

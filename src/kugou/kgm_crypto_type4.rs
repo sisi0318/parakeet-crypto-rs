@@ -1,4 +1,5 @@
-use crate::{interfaces::decryptor::DecryptorError, utils::md5};
+use crate::{interfaces::DecryptorError, utils::md5};
+use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 
 use super::{
     kgm_crypto::{KGMCrypto, KGMCryptoConfig},
@@ -79,7 +80,7 @@ impl KGMCrypto for KGMCryptoType4 {
     fn expand_slot_key(&mut self, key: &[u8]) {
         let key = md5(key);
         let key = hex::encode(key);
-        let key = base64::encode(key);
+        let key = Base64.encode(key);
         let key = key.as_bytes();
 
         self.slot_key_expanded = Self::key_expansion(&self.expanded_slot_key_table, key);
