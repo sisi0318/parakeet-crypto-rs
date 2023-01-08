@@ -85,7 +85,7 @@ impl XimalayaCrypto {
 
 impl StreamDecryptor for XimalayaCrypto {
     fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
-        let mut consume_len = 0usize;
+        let mut produce_len = 0usize;
 
         let input_len = src.len();
         let mut src = src;
@@ -99,31 +99,31 @@ impl StreamDecryptor for XimalayaCrypto {
 
             src = &src[copy_len..];
             offset += copy_len;
-            consume_len += copy_len;
         }
 
         if offset == SCRAMBLE_HEADER_LEN {
             if dst.len() < SCRAMBLE_HEADER_LEN {
                 return Err(DecryptorError::OutputBufferTooSmallWithHint(
-                    consume_len + src.len(),
+                    produce_len + src.len(),
                 ));
             }
 
             let header_buffer = self.header_buffer;
             dst[..SCRAMBLE_HEADER_LEN].copy_from_slice(&self.decrypt_header(&header_buffer));
             dst = &mut dst[SCRAMBLE_HEADER_LEN..];
+            produce_len += SCRAMBLE_HEADER_LEN;
         }
 
         if dst.len() < src.len() {
             return Err(DecryptorError::OutputBufferTooSmallWithHint(
-                consume_len + src.len(),
+                produce_len + src.len(),
             ));
         }
 
         dst[..src.len()].copy_from_slice(src);
-        consume_len += src.len();
+        produce_len += src.len();
 
         self.offset += input_len;
-        Ok(consume_len)
+        Ok(produce_len)
     }
 }
