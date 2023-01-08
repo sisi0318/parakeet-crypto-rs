@@ -1,21 +1,35 @@
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::{
+    io::{Read, Seek, SeekFrom, Write},
+    mem::swap,
+};
 
-use crate::interfaces::{Decryptor, DecryptorError};
+use crate::interfaces::{DecryptorError, StreamDecryptor};
 
 use super::{
-    kgm_crypto::KGMCryptoConfig,
+    kgm_crypto::{KGMCrypto, KGMCryptoConfig},
     kgm_crypto_factory::{create_kgm_decryptor, create_kgm_encryptor},
     kgm_header::KGMHeader,
 };
 
+enum KGMState {
+    ParseMinimalHeader([u8; 0x3C]),
+    WaitForFullHeader((usize, Option<Box<dyn KGMCrypto>>)),
+    DecryptContent(Box<dyn KGMCrypto>),
+}
+
 pub struct KGM {
     config: KGMCryptoConfig,
+
+    offset: usize,
+    state: KGMState,
 }
 
 impl KGM {
     pub fn new(config: &KGMCryptoConfig) -> Self {
         Self {
             config: config.clone(),
+            offset: 0,
+            state: KGMState::ParseMinimalHeader([0u8; 0x3C]),
         }
     }
 
@@ -53,43 +67,61 @@ impl KGM {
     }
 }
 
-impl Decryptor for KGM {
-    fn check<R>(&self, from: &mut R) -> Result<(), DecryptorError>
-    where
-        R: Read + Seek,
-    {
-        from.seek(SeekFrom::Start(0))?;
+impl StreamDecryptor for KGM {
+    fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
+        let mut src = src;
+        while !src.is_empty() {
+            match &mut self.state {
+                KGMState::ParseMinimalHeader(header) => {
+                    if self.offset < header.len() {
+                        // Copy data from source
+                        let copy_len = std::cmp::min(header.len() - self.offset, src.len());
+                        header[self.offset..self.offset + copy_len]
+                            .copy_from_slice(&src[..copy_len]);
 
-        let header = KGMHeader::from_reader(from)?;
+                        src = &src[copy_len..];
+                        self.offset += copy_len;
+                    }
 
-        create_kgm_decryptor(&header, &self.config).and(Ok(()))
-    }
+                    if self.offset == header.len() {
+                        let header = KGMHeader::from_bytes(header)?;
+                        let decryptor = create_kgm_decryptor(&header, &self.config)?;
+                        self.state = KGMState::WaitForFullHeader((
+                            header.offset_to_data as usize,
+                            Some(decryptor),
+                        ));
+                    }
+                }
+                KGMState::WaitForFullHeader((n, decryptor)) => {
+                    let n = *n;
+                    if self.offset < n {
+                        let seek_len = std::cmp::min(n - self.offset, src.len());
+                        src = &src[seek_len..];
+                        self.offset += seek_len;
+                    }
 
-    fn decrypt<R, W>(&mut self, from: &mut R, to: &mut W) -> Result<(), DecryptorError>
-    where
-        R: Read + Seek,
-        W: Write,
-    {
-        from.seek(SeekFrom::Start(0))?;
+                    if self.offset == n {
+                        let mut container = None;
+                        swap(&mut container, decryptor);
+                        self.state = KGMState::DecryptContent(container.unwrap());
+                        self.offset = 0;
+                    }
+                }
+                KGMState::DecryptContent(decryptor) => {
+                    if dst.len() < src.len() {
+                        return Err(DecryptorError::OutputBufferTooSmallWithHint(src.len()));
+                    }
 
-        let header = KGMHeader::from_reader(from)?;
-        let mut decryptor = create_kgm_decryptor(&header, &self.config)?;
-
-        let mut bytes_left = from.seek(SeekFrom::End(0))? - header.offset_to_data as u64;
-
-        from.seek(SeekFrom::Start(header.offset_to_data as u64))?;
-
-        let mut offset = 0;
-        let mut buffer = [0u8; 0x1000];
-        while bytes_left > 0 {
-            let bytes_read = from.read(&mut buffer)?;
-            decryptor.decrypt(offset, &mut buffer[..bytes_read]);
-            to.write_all(&buffer[..bytes_read])?;
-            offset += bytes_read as u64;
-            bytes_left -= bytes_read as u64;
+                    let block = &mut dst[..src.len()];
+                    block.copy_from_slice(src);
+                    decryptor.decrypt(self.offset as u64, block);
+                    self.offset += src.len();
+                    return Ok(src.len());
+                }
+            }
         }
 
-        Ok(())
+        Ok(0)
     }
 }
 
@@ -99,6 +131,8 @@ mod tests {
         fs::{self, File},
         path::PathBuf,
     };
+
+    use crate::interfaces::Decryptor;
 
     use super::*;
 
