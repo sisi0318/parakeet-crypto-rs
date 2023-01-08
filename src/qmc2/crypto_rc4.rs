@@ -52,7 +52,7 @@ impl CryptoRC4 {
 }
 
 impl StreamDecryptor for CryptoRC4 {
-    fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
+    fn decrypt_block(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
         let mut total_process_len = 0usize;
         let mut dst = dst;
         let mut src = src;

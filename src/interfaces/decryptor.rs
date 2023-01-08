@@ -14,5 +14,5 @@ pub trait Decryptor {
 }
 
 pub trait StreamDecryptor {
-    fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError>;
+    fn decrypt_block(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError>;
 }

@@ -84,7 +84,7 @@ impl XimalayaCrypto {
 }
 
 impl StreamDecryptor for XimalayaCrypto {
-    fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
+    fn decrypt_block(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
         let mut produce_len = 0usize;
 
         let input_len = src.len();

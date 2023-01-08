@@ -60,7 +60,7 @@ impl QmcV1 {
 }
 
 impl StreamDecryptor for QmcV1 {
-    fn process(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
+    fn decrypt_block(&mut self, dst: &mut [u8], src: &[u8]) -> Result<usize, DecryptorError> {
         if dst.len() < src.len() {
             return Err(DecryptorError::OutputBufferTooSmall);
         }
@@ -132,7 +132,7 @@ mod tests {
         let file_encrypted = fs::read(path_encrypted).unwrap();
         let source_content = fs::read(path_source.as_path()).unwrap();
         let mut decrypted_content = vec![0u8; source_content.len()];
-        qmc1.process(&mut decrypted_content, &file_encrypted)
+        qmc1.decrypt_block(&mut decrypted_content, &file_encrypted)
             .unwrap();
 
         assert_eq!(source_content, decrypted_content, "mismatched content");

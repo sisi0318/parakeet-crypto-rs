@@ -24,13 +24,13 @@ where
 
     for _ in (0..whole_block_len).step_by(buf_src.len()) {
         from.read_exact(&mut buf_src)?;
-        let decrypted_len = decryptor.process(&mut buf_dst, &buf_src)?;
+        let decrypted_len = decryptor.decrypt_block(&mut buf_dst, &buf_src)?;
         to.write_all(&buf_dst[..decrypted_len])?;
     }
 
     if leftover_len > 0 {
         from.read_exact(&mut buf_src[..leftover_len])?;
-        let decrypted_len = decryptor.process(&mut buf_dst, &buf_src[..leftover_len])?;
+        let decrypted_len = decryptor.decrypt_block(&mut buf_dst, &buf_src[..leftover_len])?;
         to.write_all(&buf_dst[..decrypted_len])?;
     }
 
