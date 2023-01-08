@@ -61,8 +61,8 @@ impl QMCTailParser {
 
         let (full_tail_len, encrypted_key) = match client_type {
             ClientType::AndroidSTag => return Err(DecryptorError::QMCAndroidSTag),
-            ClientType::AndroidQTag => parse_tail_qtag(&tail),
-            ClientType::PC => parse_tail_pc(&tail),
+            ClientType::AndroidQTag => parse_tail_qtag(tail),
+            ClientType::PC => parse_tail_pc(tail),
         }
         .ok_or_else(|| DecryptorError::QMCInvalidFooter(Box::new(tail_magic)))?;
 
