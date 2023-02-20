@@ -43,7 +43,7 @@ impl KGM {
         R: Read + Seek,
         W: Write,
     {
-        from.seek(SeekFrom::Start(0))?;
+        from.rewind()?;
         let mut encryptor = create_kgm_encryptor(header, &self.config)?;
 
         let header = header.to_bytes();
@@ -51,7 +51,7 @@ impl KGM {
 
         let mut bytes_left = from.seek(SeekFrom::End(0))?;
 
-        from.seek(SeekFrom::Start(0))?;
+        from.rewind()?;
 
         let mut offset = 0;
         let mut buffer = [0u8; 0x1000];

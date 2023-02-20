@@ -1,4 +1,4 @@
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, Write};
 
 use crate::interfaces::{DecryptorError, StreamDecryptor};
 
@@ -24,7 +24,7 @@ where
 {
     let mut header = [0u8; 1024];
 
-    from.seek(SeekFrom::Start(0))?;
+    from.rewind()?;
     from.read_exact(&mut header)?;
 
     let header = handler(&header);

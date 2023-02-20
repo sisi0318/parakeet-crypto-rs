@@ -20,7 +20,7 @@ where
     let whole_block_len = file_len - leftover_len;
 
     // Move back to the beginning of the stream.
-    from.seek(SeekFrom::Start(0))?;
+    from.rewind()?;
 
     for _ in (0..whole_block_len).step_by(buf_src.len()) {
         from.read_exact(&mut buf_src)?;
