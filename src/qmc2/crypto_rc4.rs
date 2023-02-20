@@ -36,14 +36,14 @@ impl CryptoRC4 {
         for ((i, dst_item), src_item) in dst.iter_mut().enumerate().zip(src.iter()) {
             let i = i + offset;
             let seed = self.key[i % key_size];
-            let key_index = get_segment_key(self.key_hash, i as u64, seed as u64);
+            let key_index = get_segment_key(self.key_hash, i as u64, seed as u64) as usize;
             *dst_item = *src_item ^ self.key[key_index % key_size];
         }
     }
 
     fn decrypt_other_segment(&self, id: usize, block: &mut [u8], offset: usize) {
-        let seed = self.key[id & 0x1FF] as u64;
-        let discards = get_segment_key(self.key_hash, id as u64, seed) & 0x1FF;
+        let seed = self.key[id % self.key.len()] as u64;
+        let discards = (get_segment_key(self.key_hash, id as u64, seed) as usize) % self.key.len();
 
         let mut rc4 = RC4::new(&self.key);
         rc4.discard(discards + (offset % OTHER_SEGMENT_SIZE));
