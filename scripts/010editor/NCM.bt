@@ -1,0 +1,88 @@
+//------------------------------------------------
+//--- 010 Editor v12.0.1 Binary Template
+//
+//      File: NCM.bt
+//    Author: Jixun
+//   Version: 0.1
+//   Purpose: Parse NCM data
+//  Category: Audio
+// File Mask: *.ncm
+//  ID Bytes: 43 54 45 4E 46 44 41 4D
+//   History: Initial version
+//------------------------------------------------
+
+string ReadableSize(uint32 value) {
+    local double v = value;
+    local string suffix = "B";
+    if (v <= 512) {
+        suffix = "B";
+    }
+    if (v > 512) {
+        suffix = "KiB";
+        v /= 1024;
+    }
+    if (v > 512) {
+        suffix = "MiB";
+        v /= 1024;
+    }
+    if (v > 512) {
+        suffix = "GiB";
+        v /= 1024;
+    }
+
+    return Str("(as size) %.2f %s", v, suffix);
+}
+
+LittleEndian(); 
+
+char magic[8];
+
+struct Block (int pad_len) {
+    if (pad_len > 0) {
+        ubyte unk_padding[pad_len] <
+            format=hex,
+            bgcolor=cLtRed,
+            fgcolor=cDkRed
+        >;
+    }
+
+    uint32 len <
+        comment=ReadableSize,
+        bgcolor=cLtAqua,
+        fgcolor=cDkAqua
+    >;
+    ubyte data[len] <
+        format=hex,
+        bgcolor=cLtPurple,
+        fgcolor=cDkPurple
+    >;
+};
+
+Block content_key(2) <comment="Content Key (RC4), encrypted with a pre-defined AES Key.">;
+Block meta(0) <comment="Metadata. Encrypted with a different key.">;
+
+struct {
+    
+    ubyte padding;
+    uint32 v <comment=ReadableSize>;
+} unknown_gap;
+
+struct {
+    uint32 frame_size <comment="sizeof(data.data) + sizeof(padding)">;
+    Block data(0) <comment="Album cover">;
+
+    Assert(frame_size >= data.len, "frame size should be larger than data size");
+    if (frame_size > data.len) {
+        ubyte padding[frame_size - data.len];
+    }
+} cover_block;
+
+local int64 audio_len = FileSize() - FTell();
+struct {
+    ubyte encrypted_audio[audio_len];
+} encrypted_audio <
+    format=hex,
+    bgcolor=cDkGreen,
+    fgcolor=cWhite,
+    comment=ReadableSize(audio_len)
+>;
