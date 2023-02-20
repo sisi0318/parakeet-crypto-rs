@@ -10,6 +10,12 @@ pub fn read_key_from_parameter(value: &str) -> Option<Box<[u8]>> {
     } else if let Some(value) = value.strip_prefix("base64:") {
         let content = Base64.decode(value).unwrap();
         Some(content.into())
+    } else if let Some(value) = value.strip_prefix("hex:") {
+        let content = hex::decode(value).unwrap();
+        Some(content.into())
+    } else if let Some(value) = value.strip_prefix("raw:") {
+        let content = value.as_bytes();
+        Some(content.into())
     } else {
         None
     }
