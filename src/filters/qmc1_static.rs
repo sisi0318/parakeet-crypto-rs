@@ -74,7 +74,7 @@ where
 
         self.crypto
             .transform(buf, &src[..read_amount])
-            .map_err(|_| std::io::Error::new(ErrorKind::Other, "transform failed"))
+            .map_err(|err| std::io::Error::new(ErrorKind::Other, err))
     }
 }
 
@@ -106,7 +106,7 @@ where
         let mut dst = vec![0xffu8; buf.len()];
         self.crypto
             .transform(&mut dst[..], buf)
-            .map_err(|_| std::io::Error::new(ErrorKind::Other, "transform failed"))?;
+            .map_err(|err| std::io::Error::new(ErrorKind::Other, err))?;
         self.writer.write(&dst)
     }
 
