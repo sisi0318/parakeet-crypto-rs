@@ -8,4 +8,6 @@ pub mod ximalaya;
 mod qmc1;
 pub use qmc1::QmcV1;
 
+pub mod filters;
+
 pub(crate) mod utils;
