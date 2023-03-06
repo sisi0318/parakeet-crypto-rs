@@ -1,4 +1,6 @@
-pub struct QMC2Map;
+use super::{qmc2::QMC2Crypto, QMC1Static};
+
+pub struct QMC2Map(QMC1Static);
 
 const INDEX_OFFSET: usize = 71214 % 256;
 
@@ -22,6 +24,22 @@ impl QMC2Map {
         }
 
         key128
+    }
+
+    pub fn new(file_key: Vec<u8>) -> Self {
+        Self(QMC1Static::new(&Self::to_qmc1_static_key128(&file_key)))
+    }
+}
+
+impl QMC2Crypto for QMC2Map {
+    fn get_offset(&self) -> usize {
+        self.0.get_offset()
+    }
+    fn set_file_key(&mut self, key: &[u8]) -> Result<(), crate::interfaces::DecryptorError> {
+        self.0.set_file_key(&Self::to_qmc1_static_key128(key))
+    }
+    fn transform(&mut self, dst: &mut [u8]) -> Result<usize, crate::interfaces::DecryptorError> {
+        self.0.transform(dst)
     }
 }
 
