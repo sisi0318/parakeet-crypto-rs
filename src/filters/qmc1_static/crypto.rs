@@ -1,7 +1,7 @@
 use crate::{
     filters::qmc2::QMC2Crypto,
     interfaces::DecryptorError,
-    utils::loop_iterator::{LoopCounter, LoopIter},
+    utils::{LoopCounter, LoopIter},
 };
 
 const CIPHER_PAGE_SIZE: usize = 0x7fff;
