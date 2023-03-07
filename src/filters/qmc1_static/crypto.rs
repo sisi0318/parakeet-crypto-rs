@@ -5,7 +5,7 @@ use crate::{
 };
 
 const CIPHER_PAGE_SIZE: usize = 0x7fff;
-const INDEX_OFFSET: usize = 80923 % 256;
+const INDEX_OFFSET: usize = 80923;
 
 #[derive(Debug)]
 pub struct QMC1Static {
@@ -26,7 +26,7 @@ impl QMC1Static {
     pub fn new_key256(key256: &[u8; 256]) -> Self {
         let mut key128 = [0u8; 128];
         for (i, key) in key128.iter_mut().enumerate() {
-            *key = key256[(i * i + INDEX_OFFSET) % key256.len()];
+            *key = key256[(i * i + INDEX_OFFSET) & 0xFF];
         }
 
         Self::new(&key128)

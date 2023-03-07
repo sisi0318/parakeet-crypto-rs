@@ -27,8 +27,7 @@ where
     R: Read,
 {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let mut src = vec![0xffu8; buf.len()];
-        let read_amount = self.reader.read(&mut src)?;
+        let read_amount = self.reader.read(&mut buf[..])?;
 
         self.crypto
             .transform(&mut buf[..read_amount])
