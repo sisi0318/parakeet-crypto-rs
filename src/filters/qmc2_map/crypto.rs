@@ -1,8 +1,8 @@
-use super::{qmc2::QMC2Crypto, QMC1Static};
+use super::super::{qmc2::QMC2Crypto, QMC1Static};
 
 pub struct QMC2Map(QMC1Static);
 
-const INDEX_OFFSET: usize = 71214 % 256;
+const INDEX_OFFSET: usize = 71214;
 
 impl QMC2Map {
     pub fn to_qmc1_static_key128(key_blob: &[u8]) -> [u8; 128] {
@@ -44,15 +44,5 @@ impl QMC2Crypto for QMC2Map {
     }
     fn transform(&mut self, dst: &mut [u8]) -> Result<usize, crate::interfaces::DecryptorError> {
         self.0.transform(dst)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::QMC2Map;
-
-    #[test]
-    fn test_key_transformation() {
-        todo!("test for qmc2 map key conversion")
     }
 }

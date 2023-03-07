@@ -12,6 +12,3 @@ pub use parser::QMCFooterParser;
 
 mod decrypt_key;
 use decrypt_key::QMCFooterKeyDecryptor;
-
-#[cfg(test)]
-pub(super) use decrypt_key::make_simple_key;
