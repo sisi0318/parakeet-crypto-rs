@@ -5,3 +5,6 @@ pub use qmc2_reader::QMC2Reader;
 
 mod qmc2_stream;
 pub use qmc2_stream::QMC2Crypto;
+
+#[cfg(test)]
+mod test;
