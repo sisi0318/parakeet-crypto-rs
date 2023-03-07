@@ -22,10 +22,13 @@ venv/
 
 # Decryption key files
 *.bin
-/*.ogg
+*.ogg
 *.flac
 *.mp3
 *.dff
+
+!**/__fixture__/*
+!**/sample/*
 
 keys/
 local/
