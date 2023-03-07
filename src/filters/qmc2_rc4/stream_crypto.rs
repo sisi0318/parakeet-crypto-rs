@@ -28,7 +28,7 @@ impl QMC2RC4 {
         }
     }
 
-    pub fn new_blank() -> Self {
+    pub fn new_default() -> Self {
         Self {
             offset: 0,
             rc4_stream: [0u8; RC4_STREAM_CACHE_SIZE],

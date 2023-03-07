@@ -55,8 +55,8 @@ pub fn cli_handle_qmc2(args: QMC2Options) {
     let mut src = File::open(args.input_file.path).unwrap();
     let mut dst = File::create(args.output_file.path).unwrap();
 
-    let mut qmc2_map = QMC2Map::new(vec![0]);
-    let mut qmc2_rc4 = QMC2RC4::new_blank();
+    let mut qmc2_map = QMC2Map::new_default();
+    let mut qmc2_rc4 = QMC2RC4::new_default();
 
     let mut qmc2_decryption_reader =
         QMC2Reader::new(&mut parser, &mut qmc2_map, &mut qmc2_rc4, &mut src).unwrap();

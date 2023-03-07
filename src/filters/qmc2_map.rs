@@ -29,6 +29,10 @@ impl QMC2Map {
     pub fn new(file_key: Vec<u8>) -> Self {
         Self(QMC1Static::new(&Self::to_qmc1_static_key128(&file_key)))
     }
+
+    pub fn new_default() -> Self {
+        Self(QMC1Static::new(&Self::to_qmc1_static_key128(&[])))
+    }
 }
 
 impl QMC2Crypto for QMC2Map {
