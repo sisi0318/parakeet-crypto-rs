@@ -1,11 +1,6 @@
-mod guess_type;
-pub use guess_type::{guess_type, ClientType};
-
 mod android;
-pub use android::parse_footer_qtag;
-
+mod guess_type;
 mod pc;
-pub use pc::parse_footer_pc;
 
 mod parser;
 pub use parser::QMCFooterParser;

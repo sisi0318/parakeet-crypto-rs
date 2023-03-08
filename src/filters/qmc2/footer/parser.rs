@@ -3,7 +3,10 @@ use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
-use super::{guess_type, parse_footer_pc, parse_footer_qtag, ClientType, QMCFooterKeyDecryptor};
+use super::android::parse_footer_qtag;
+use super::guess_type::{guess_type, ClientType};
+use super::pc::parse_footer_pc;
+use super::QMCFooterKeyDecryptor;
 
 const ENC_V2_PREFIX_TAG: &[u8] = b"QQMusic EncV2,Key:";
 

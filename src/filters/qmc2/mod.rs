@@ -1,4 +1,5 @@
 pub mod footer;
+pub use footer::QMCFooterParser;
 
 mod qmc2_reader;
 pub use qmc2_reader::QMC2Reader;

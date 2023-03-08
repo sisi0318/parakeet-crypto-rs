@@ -14,6 +14,7 @@ impl<'a, R> QMC2RC4Reader<'a, R>
 where
     R: Read,
 {
+    #[allow(dead_code)]
     pub fn new(crypto: QMC2RC4, prev_reader: &'a mut R) -> Self {
         Self {
             crypto,
