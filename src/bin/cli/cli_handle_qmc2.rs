@@ -58,9 +58,16 @@ pub fn cli_handle_qmc2(args: QMC2Options) {
     let mut qmc2_map = QMC2Map::new_default();
     let mut qmc2_rc4 = QMC2RC4::new_default();
 
-    let mut qmc2_decryption_reader =
-        QMC2Reader::new(&mut parser, &mut qmc2_map, &mut qmc2_rc4, &mut src).unwrap();
+    let mut qmc2_reader = QMC2Reader::new(&mut parser, &mut qmc2_map, &mut qmc2_rc4, &mut src)
+        .unwrap_or_else(|err| {
+            log.error(&format!("init qmc2 reader failed: {err}"));
+            process::exit(1)
+        });
 
-    std::io::copy(&mut qmc2_decryption_reader, &mut dst).unwrap();
+    std::io::copy(&mut qmc2_reader, &mut dst).unwrap_or_else(|err| {
+        log.error(&format!("transform failed: {err}"));
+        process::exit(1)
+    });
+
     log.info("Decryption OK.");
 }

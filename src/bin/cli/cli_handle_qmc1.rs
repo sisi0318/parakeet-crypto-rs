@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{fs::File, process};
 
 use argh::FromArgs;
 use parakeet_crypto::filters::{QMC1Static, QMC1StaticReader};
@@ -43,9 +43,14 @@ pub fn cli_handle_qmc1(args: QMC1Options) {
     ));
 
     let mut src = File::open(args.input_file.path).unwrap();
-    let mut reader = QMC1StaticReader::new(qmc1, &mut src);
     let mut dst = File::create(args.output_file.path).unwrap();
-    std::io::copy(&mut reader, &mut dst).unwrap();
+
+    let mut qmc1_reader = QMC1StaticReader::new(qmc1, &mut src);
+
+    std::io::copy(&mut qmc1_reader, &mut dst).unwrap_or_else(|err| {
+        log.error(&format!("transform failed: {err}"));
+        process::exit(1)
+    });
 
     log.info("Decryption OK.");
 }
