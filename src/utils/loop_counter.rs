@@ -23,6 +23,7 @@ impl LoopCounter {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get(&self) -> usize {
         self.current
     }
