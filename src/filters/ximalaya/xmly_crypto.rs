@@ -31,7 +31,7 @@ impl XimalayaCrypto {
 
         let mut key_iter = LoopIter::new(&self.content_key, 0);
         for (i, &scramble_idx) in self.scramble_key.iter().enumerate() {
-            plain[i] = encrypted[scramble_idx as usize] ^ key_iter.get_and_move();
+            plain[i] = encrypted[scramble_idx as usize] ^ key_iter.get_and_next();
         }
 
         plain
@@ -42,7 +42,7 @@ impl XimalayaCrypto {
 
         let mut key_iter = LoopIter::new(&self.content_key, 0);
         for (i, &scramble_idx) in self.scramble_key.iter().enumerate() {
-            encrypted[scramble_idx as usize] = plain[i] ^ key_iter.get_and_move();
+            encrypted[scramble_idx as usize] = plain[i] ^ key_iter.get_and_next();
         }
 
         encrypted

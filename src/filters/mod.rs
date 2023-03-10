@@ -1,3 +1,8 @@
+mod kugou;
+pub use kugou::{
+    file_constants, file_header, KGMCrypto, KGMCryptoConfig, KugouDecryptReader, KugouEncryptReader,
+};
+
 mod qmc1_static;
 pub use qmc1_static::{QMC1Static, QMC1StaticReader};
 

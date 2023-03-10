@@ -1,14 +1,12 @@
 use crate::interfaces::DecryptorError;
 
 use super::{
-    kgm_crypto::{KGMCrypto, KGMCryptoConfig},
-    kgm_crypto_type2::KGMCryptoType2,
-    kgm_crypto_type3::KGMCryptoType3,
-    kgm_crypto_type4::KGMCryptoType4,
-    kgm_header::KGMHeader,
-    kgm_magic::{
+    base::{KGMCrypto, KGMCryptoConfig},
+    file_constants::{
         KGM_EXPECTED_DECRYPTION_RESULT, KGM_HEADER, VPR_EXPECTED_DECRYPTION_RESULT, VPR_HEADER,
     },
+    file_header::KGMHeader,
+    KGMCryptoType2, KGMCryptoType3, KGMCryptoType4,
 };
 
 #[inline]
@@ -17,7 +15,7 @@ fn create_kgm_crypto(
     config: &KGMCryptoConfig,
 ) -> Result<Box<dyn KGMCrypto>, DecryptorError> {
     if let Some(slot_key) = config.slot_keys.get(&header.key_slot) {
-        let mut decryptor: Box<dyn KGMCrypto> = match header.crypto_version {
+        let mut kgm_crypto: Box<dyn KGMCrypto> = match header.crypto_version {
             2 => Box::from(KGMCryptoType2::default()),
             3 => Box::from(KGMCryptoType3::default()),
             4 => Box::from(KGMCryptoType4::default()),
@@ -28,14 +26,8 @@ fn create_kgm_crypto(
             }
         };
 
-        // Configure the decryptor...
-        decryptor.configure(config)?;
-
-        // Key expansion
-        decryptor.expand_slot_key(slot_key);
-        decryptor.expand_file_key(&header.file_key);
-
-        Ok(decryptor)
+        kgm_crypto.configure(config, slot_key, &header.file_key);
+        Ok(kgm_crypto)
     } else {
         Err(DecryptorError::KGMInvalidKeySlotError(header.key_slot))
     }
@@ -74,11 +66,11 @@ pub fn create_kgm_encryptor(
     config: &KGMCryptoConfig,
 ) -> Result<Box<dyn KGMCrypto>, DecryptorError> {
     let mut encryptor = create_kgm_crypto(header, config)?;
-    let challenge_data = kgm_select_challenge_data(&header.magic)?;
+    let mut challenge_data = kgm_select_challenge_data(&header.magic)?;
 
     // Key verification signature generation
+    encryptor.encrypt(0, &mut challenge_data);
     header.decryptor_test_data = challenge_data;
-    encryptor.encrypt(0, &mut header.decryptor_test_data);
 
     Ok(encryptor)
 }

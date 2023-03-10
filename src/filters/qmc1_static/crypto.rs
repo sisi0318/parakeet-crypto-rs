@@ -36,7 +36,7 @@ impl QMC1Static {
         let mut key_iter = LoopIter::new(&self.key, self.offset % CIPHER_PAGE_SIZE);
 
         for value in dst.iter_mut() {
-            *value ^= key_iter.get_and_move();
+            *value ^= key_iter.get_and_next();
 
             if self.page_counter.next() {
                 key_iter.reset();

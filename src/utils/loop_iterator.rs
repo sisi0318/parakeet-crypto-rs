@@ -21,12 +21,12 @@ where
         }
     }
 
-    pub fn get_and_move(&mut self) -> T {
+    pub fn get_and_next(&mut self) -> T {
         if let Some(value) = self.iter.next() {
             *value
         } else {
             self.reset();
-            self.get_and_move()
+            self.get_and_next()
         }
     }
 

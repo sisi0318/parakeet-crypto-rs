@@ -2,6 +2,7 @@ use std::io::{Cursor, Read};
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KGMHeader {
     pub magic: [u8; 16],
     pub offset_to_data: u32,
@@ -43,7 +44,7 @@ impl KGMHeader {
         Self::from_reader(&mut Cursor::new(stream))
     }
 
-    pub fn to_bytes(&self) -> Box<[u8]> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut result: Vec<u8> = vec![];
         result.extend(self.magic);
         result.extend(self.offset_to_data.to_le_bytes());
@@ -55,6 +56,6 @@ impl KGMHeader {
         debug_assert!(self.offset_to_data as usize >= result.len());
         result.resize(self.offset_to_data as usize, 0);
 
-        result.into()
+        result
     }
 }
