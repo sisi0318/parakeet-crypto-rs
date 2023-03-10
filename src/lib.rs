@@ -1,11 +1,5 @@
-pub mod helper;
 pub mod interfaces;
 
-pub mod kugou;
-pub mod qmc2;
-pub mod ximalaya;
+pub mod filters;
 
-mod qmc1;
-pub use qmc1::QmcV1;
-
-pub(crate) mod utils;
+pub(self) mod utils;

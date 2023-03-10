@@ -1,9 +1,8 @@
-use std::{fs::File, process};
+use std::{fs::File, io::copy, process};
 
 use argh::FromArgs;
-use parakeet_crypto::{
-    interfaces::Decryptor,
-    kugou::{self, kgm_crypto::KGMCryptoConfig, kgm_header::KGMHeader},
+use parakeet_crypto::filters::{
+    file_header::KGMHeader, KGMCryptoConfig, KugouDecryptReader, KugouEncryptReader,
 };
 
 use super::{
@@ -47,19 +46,18 @@ pub fn cli_handle_kugou(args: KugouOptions) {
     let mut config = KGMCryptoConfig::default();
 
     if let Some(table) = args.v4_file_key_expansion_table {
-        config.v4_file_key_expand_table = table.content;
+        config.v4_file_key_expand_table = table.content.to_vec();
         log.info("(v4) file key expansion table accepted.");
     }
 
     if let Some(table) = args.v4_slot_key_expansion_table {
-        config.v4_slot_key_expand_table = table.content;
+        config.v4_slot_key_expand_table = table.content.to_vec();
         log.info("(v4) slot key expansion table accepted.");
     }
 
     // Configure key slots
-    config.slot_keys.insert(1, args.slot_key_1.content);
+    config.slot_keys.insert(1, args.slot_key_1.content.to_vec());
 
-    let mut kgm = kugou::kgm_decryptor::KGM::new(&config);
     let mut input_file = File::open(args.input_file.path).unwrap();
     let mut output_file = File::create(args.output_file.path).unwrap();
 
@@ -70,14 +68,16 @@ pub fn cli_handle_kugou(args: KugouOptions) {
     };
 
     if let Some(encrypt_header) = args.encrypt_header {
-        let mut header = KGMHeader::from_bytes(&encrypt_header.content).unwrap_or_else(|err| {
+        let header = KGMHeader::from_bytes(&encrypt_header.content).unwrap_or_else(|err| {
             log.error(&format!("Could not parse header: {:?}", err));
             process::exit(1)
         });
 
-        kgm.encrypt(&mut header, &mut input_file, &mut output_file)
+        let mut kgm_reader = KugouEncryptReader::new(&config, &header, &mut input_file).unwrap();
+        copy(&mut kgm_reader, &mut output_file)
     } else {
-        kgm.decrypt(&mut input_file, &mut output_file)
+        let mut kgm_reader = KugouDecryptReader::new(&config, &mut input_file).unwrap();
+        copy(&mut kgm_reader, &mut output_file)
     }
     .unwrap_or_else(|err| {
         log.error(&format!("{operation} failed: {err}"));

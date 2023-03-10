@@ -1,7 +1,7 @@
 use std::{fs::File, process};
 
 use argh::FromArgs;
-use parakeet_crypto::{interfaces::Decryptor, QmcV1};
+use parakeet_crypto::filters::{QMC1Static, QMC1StaticReader};
 
 use super::{
     logger::CliLogger,
@@ -27,12 +27,14 @@ pub struct QMC1Options {
 
 pub fn cli_handle_qmc1(args: QMC1Options) {
     let log = CliLogger::new("QMC1");
-    let mut qmc1_static = match QmcV1::new_static(&args.static_key.content) {
-        None => {
-            log.error("key rejected, invalid length?");
+
+    let qmc1 = match args.static_key.content.len() {
+        128 => QMC1Static::new(args.static_key.content[..].try_into().unwrap()),
+        256 => QMC1Static::new_key256(args.static_key.content[..].try_into().unwrap()),
+        _ => {
+            log.error("key rejected -- invalid length");
             return;
         }
-        Some(x) => x,
     };
 
     log.info(&format!(
@@ -40,14 +42,15 @@ pub fn cli_handle_qmc1(args: QMC1Options) {
         args.static_key.content.len()
     ));
 
-    qmc1_static
-        .decrypt(
-            &mut File::open(args.input_file.path).unwrap(),
-            &mut File::create(args.output_file.path).unwrap(),
-        )
-        .unwrap_or_else(|err| {
-            log.error(&format!("Decryption failed: {err}"));
-            process::exit(1);
-        });
+    let mut src = File::open(args.input_file.path).unwrap();
+    let mut dst = File::create(args.output_file.path).unwrap();
+
+    let mut qmc1_reader = QMC1StaticReader::new(qmc1, &mut src);
+
+    std::io::copy(&mut qmc1_reader, &mut dst).unwrap_or_else(|err| {
+        log.error(&format!("transform failed: {err}"));
+        process::exit(1)
+    });
+
     log.info("Decryption OK.");
 }

@@ -50,6 +50,7 @@ pub fn xor_from_offset(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn xor_block_from_offset(
     dst: &mut [u8],
     src: &[u8],

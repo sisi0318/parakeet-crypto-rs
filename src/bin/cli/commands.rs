@@ -6,13 +6,13 @@ use super::{
 };
 
 /// Test CLI tool for parakeet_crypto.
-#[derive(FromArgs, Eq, PartialEq, Debug)]
+#[derive(FromArgs, PartialEq, Debug)]
 pub struct ParakeetCLIArgRoot {
     #[argh(subcommand)]
     pub command: ParakeetCryptoName,
 }
 
-#[derive(FromArgs, Eq, PartialEq, Debug)]
+#[derive(FromArgs, PartialEq, Debug)]
 #[argh(subcommand)]
 pub enum ParakeetCryptoName {
     ModuleQMC1(QMC1Options),

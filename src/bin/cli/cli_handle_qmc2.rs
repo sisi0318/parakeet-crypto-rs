@@ -1,10 +1,7 @@
 use std::{fs::File, process};
 
 use argh::FromArgs;
-use parakeet_crypto::{
-    interfaces::Decryptor,
-    qmc2::{QMCTailParser, QMC2},
-};
+use parakeet_crypto::filters::{QMC2Map, QMC2Reader, QMCFooterParser, QMC2RC4};
 
 use crate::cli::logger::CliLogger;
 
@@ -38,7 +35,7 @@ pub struct QMC2Options {
 pub fn cli_handle_qmc2(args: QMC2Options) {
     let log = CliLogger::new("QMC2");
 
-    let mut parser = QMCTailParser::new(args.seed);
+    let mut parser = QMCFooterParser::new(args.seed);
 
     if let Some(key1) = args.key1 {
         parser.set_key_stage1(key1.content);
@@ -55,15 +52,22 @@ pub fn cli_handle_qmc2(args: QMC2Options) {
         process::exit(1);
     }
 
-    let mut qmc2_map = QMC2::new(parser);
-    qmc2_map
-        .decrypt(
-            &mut File::open(args.input_file.path).unwrap(),
-            &mut File::create(args.output_file.path).unwrap(),
-        )
+    let mut src = File::open(args.input_file.path).unwrap();
+    let mut dst = File::create(args.output_file.path).unwrap();
+
+    let mut qmc2_map = QMC2Map::new_default();
+    let mut qmc2_rc4 = QMC2RC4::new_default();
+
+    let mut qmc2_reader = QMC2Reader::new(&mut parser, &mut qmc2_map, &mut qmc2_rc4, &mut src)
         .unwrap_or_else(|err| {
-            log.error(&format!("Decryption failed: {err}"));
-            process::exit(1);
+            log.error(&format!("init qmc2 reader failed: {err}"));
+            process::exit(1)
         });
+
+    std::io::copy(&mut qmc2_reader, &mut dst).unwrap_or_else(|err| {
+        log.error(&format!("transform failed: {err}"));
+        process::exit(1)
+    });
+
     log.info("Decryption OK.");
 }
