@@ -62,20 +62,16 @@ impl Version2RC4 {
 
     fn encode_other_segment(&self, offset: usize, buffer: &mut [u8]) {
         let key_len = self.key.len();
-        let mut offset = offset;
 
-        let segment_index = offset / OTHER_SEGMENT_SIZE;
-        let discard_len = offset % OTHER_SEGMENT_SIZE;
-        let discard_len = discard_len
-            + self.get_segment_key(segment_index, self.key[segment_index % key_len])
-            & 0x1FF;
+        let segment_idx = offset / OTHER_SEGMENT_SIZE;
+        let segment_offset = offset % OTHER_SEGMENT_SIZE;
 
-        let process_len = min(
-            buffer.len(),
-            OTHER_SEGMENT_SIZE - (offset % OTHER_SEGMENT_SIZE),
-        );
-        let mut buffer = &mut buffer[..process_len];
-        let key_stream = &self.key_stream[discard_len..];
+        let segment_key = self.get_segment_key(segment_idx, self.key[segment_idx % key_len]);
+        let skip_len = segment_key & 0x1FF;
+
+        let len = min(buffer.len(), OTHER_SEGMENT_SIZE - segment_offset);
+        let mut buffer = &mut buffer[..len];
+        let key_stream = &self.key_stream[skip_len + segment_offset..];
 
         for (item, &key) in buffer.iter_mut().zip(key_stream.iter()) {
             *item ^= key;
@@ -87,13 +83,12 @@ impl Version2RC4 {
         let mut buffer = buffer;
 
         let process = #[inline(always)]
-            |is_first_segment: SegmentType, len: usize| {
+            |segment_type: SegmentType, len: usize| {
             let len = min(buffer.len(), len);
             let (segment, rest) = buffer.split_at_mut(len);
-            if is_first_segment {
-                self.encode_first_segment(offset, segment);
-            } else {
-                self.encode_other_segment(offset, segment);
+            match segment_type {
+                SegmentType::First => self.encode_first_segment(offset, segment),
+                SegmentType::Other => self.encode_other_segment(offset, segment),
             }
             offset += len;
             buffer = rest;
