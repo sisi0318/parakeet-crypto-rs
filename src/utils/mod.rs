@@ -11,4 +11,6 @@ mod loop_iterator;
 pub use loop_iterator::LoopIter;
 
 mod loop_peek_iter;
+pub mod validate;
+
 pub use loop_peek_iter::PeekIter;
