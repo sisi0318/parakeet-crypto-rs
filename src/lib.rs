@@ -1,5 +1,10 @@
+#[macro_use]
+extern crate lazy_static;
+
 pub mod interfaces;
 
 pub mod filters;
 
-pub(self) mod utils;
+mod utils;
+
+mod crypto;

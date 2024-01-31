@@ -15,10 +15,11 @@ strip = true
 codegen-units = 1
 
 [dependencies]
-argh = "0.1.9"
-byteorder = "1.4.3"
-base64 = "0.21.0"
+argh = "0.1.12"
+byteorder = "1.5.0"
+base64 = "0.21.7"
 tc_tea = "0.1.4"
 md-5 = "0.10.5"
 hex = "0.4.3"
-thiserror = "1.0"
+thiserror = "1.0.56"
+lazy_static = "1.4.0"
