@@ -1,1 +1,1 @@
-mod tencent;
+pub mod tencent;

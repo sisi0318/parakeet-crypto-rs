@@ -24,8 +24,8 @@ pub fn qmc2_key_to_qmc1(key_blob: &[u8]) -> [u8; 128] {
 }
 
 impl Version2Map {
-    pub fn new(file_key: Vec<u8>) -> Self {
-        let key = qmc2_key_to_qmc1(file_key.into());
+    pub fn new(file_key: &[u8]) -> Self {
+        let key = qmc2_key_to_qmc1(file_key);
         Self { key }
     }
 

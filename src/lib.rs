@@ -7,4 +7,4 @@ pub mod filters;
 
 mod utils;
 
-mod crypto;
+pub mod crypto;

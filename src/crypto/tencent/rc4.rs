@@ -1,20 +1,20 @@
 #[derive(Debug, Clone)]
 pub struct RC4 {
-    state: Vec<u8>,
+    state: Box<[u8]>,
     i: usize,
     j: usize,
 }
 
-fn init_state(key: &[u8]) -> Vec<u8> {
+fn init_state(key: &[u8]) -> Box<[u8]> {
     let n = key.len();
-    let mut state = vec![0u8; n];
+    let mut state = key.to_vec().into_boxed_slice();
     for (i, v) in state.iter_mut().enumerate() {
         *v = i as u8;
     }
 
     let mut j = 0usize;
     for i in 0..state.len() {
-        j = (j + state[i] + key[i % n]) % n;
+        j = (j + usize::from(state[i]) + usize::from(key[i % n])) % n;
         state.swap(i, j);
     }
 
@@ -30,23 +30,21 @@ impl RC4 {
         }
     }
 
+    fn at(&self, idx: usize) -> usize {
+        self.state[idx].into()
+    }
+
     fn next(&mut self) -> u8 {
         let n = self.state.len();
 
         self.i = (self.i + 1) % n;
-        self.j = (self.j + self.state[self.i]) % n;
+        self.j = (self.j + self.at(self.i)) % n;
 
         let (i, j) = (self.i, self.j);
-        let final_idx = (i + j) % n;
+        let final_idx = (self.at(i) + self.at(j)) % n;
         self.state.swap(i, j);
 
         self.state[final_idx]
-    }
-
-    pub fn process(&mut self, buffer: &mut [u8]) {
-        for p in buffer.iter_mut() {
-            *p ^= self.next();
-        }
     }
 
     pub fn get_key_stream<const N: usize>(key: &[u8]) -> [u8; N] {
@@ -73,7 +71,9 @@ mod tests {
             let rc4_copy = rc4.clone();
 
         let mut data = *b"hello world";
-        rc4.derive(&mut data[..]);
+        for p in data.iter_mut() {
+            *p ^= rc4.next();
+        }
 
         assert_ne!(rc4.state, rc4_copy.state);
         assert_eq!(&data, b"\x68\x75\x6b\x64\x64\x24\x7f\x60\x7c\x7d\x60")

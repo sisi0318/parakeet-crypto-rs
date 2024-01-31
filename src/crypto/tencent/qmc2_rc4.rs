@@ -6,7 +6,7 @@ const INITIAL_SEGMENT_SIZE: usize = 0x80;
 const OTHER_SEGMENT_SIZE: usize = 0x1400;
 const KEY_STREAM_LEN: usize = 0x1FF + OTHER_SEGMENT_SIZE;
 
-struct Version2RC4 {
+pub struct Version2RC4 {
     key: Box<[u8]>,
     key_stream: [u8; KEY_STREAM_LEN],
     key_hash: u32,
@@ -14,7 +14,7 @@ struct Version2RC4 {
 
 fn calc_key_hash(key: &[u8]) -> u32 {
     let mut hash = 1u32;
-    for &v in key.iter().filter(|v| v != 0) {
+    for &v in key.iter().filter(|&&v| v != 0) {
         let next = hash.wrapping_mul(v.into());
         if next <= hash {
             break;
@@ -26,15 +26,10 @@ fn calc_key_hash(key: &[u8]) -> u32 {
     hash
 }
 
-enum SegmentType {
-    First,
-    Other,
-}
-
 impl Version2RC4 {
     pub fn new(key: &[u8]) -> Self {
         Self {
-            key: key.clone().into(),
+            key: key.into(),
             key_hash: calc_key_hash(key),
             key_stream: RC4::get_key_stream::<KEY_STREAM_LEN>(key),
         }
@@ -46,7 +41,10 @@ impl Version2RC4 {
         if seed == 0 {
             0usize
         } else {
-            f64::from(self.key_hash) / f64::from((id + 1) * seed) * 100.0
+            let seed = seed as u32;
+            let id = id as u32;
+            let key = f64::from(self.key_hash) / f64::from(seed * (id + 1)) * 100.0;
+            key as usize
         }
     }
 
@@ -70,7 +68,7 @@ impl Version2RC4 {
         let skip_len = segment_key & 0x1FF;
 
         let len = min(buffer.len(), OTHER_SEGMENT_SIZE - segment_offset);
-        let mut buffer = &mut buffer[..len];
+        let buffer = &mut buffer[..len];
         let key_stream = &self.key_stream[skip_len + segment_offset..];
 
         for (item, &key) in buffer.iter_mut().zip(key_stream.iter()) {
@@ -82,29 +80,25 @@ impl Version2RC4 {
         let mut offset = offset;
         let mut buffer = buffer;
 
-        let process = #[inline(always)]
-            |segment_type: SegmentType, len: usize| {
-            let len = min(buffer.len(), len);
+        if offset < INITIAL_SEGMENT_SIZE {
+            let len = min(buffer.len(), INITIAL_SEGMENT_SIZE - offset);
             let (segment, rest) = buffer.split_at_mut(len);
-            match segment_type {
-                SegmentType::First => self.encode_first_segment(offset, segment),
-                SegmentType::Other => self.encode_other_segment(offset, segment),
-            }
+            self.encode_first_segment(offset, segment);
             offset += len;
             buffer = rest;
-        };
-
-        if offset < INITIAL_SEGMENT_SIZE {
-            process(SegmentType::First, INITIAL_SEGMENT_SIZE - offset);
         }
 
         if (offset % OTHER_SEGMENT_SIZE) != 0 {
             let len = OTHER_SEGMENT_SIZE - (offset % OTHER_SEGMENT_SIZE);
-            process(SegmentType::Other, len);
+            let len = min(buffer.len(), len);
+            let (segment, rest) = buffer.split_at_mut(len);
+            self.encode_other_segment(offset, segment);
+            offset += len;
+            buffer = rest;
         }
 
         for segment in buffer.chunks_mut(OTHER_SEGMENT_SIZE) {
-            let len = min(buffer.len(), OTHER_SEGMENT_SIZE);
+            let len = segment.len();
             self.encode_other_segment(offset, segment);
             offset += len;
         }
