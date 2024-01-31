@@ -47,14 +47,11 @@ impl RC4 {
         self.state[final_idx]
     }
 
-    pub fn get_key_stream<const N: usize>(key: &[u8]) -> [u8; N] {
-        let mut rc4 = Self::new(key);
-
+    pub fn get_key_stream<const N: usize>(&mut self) -> [u8; N] {
         let mut buffer = [0u8; N];
         for item in buffer.iter_mut() {
-            *item = rc4.next();
+            *item = self.next();
         }
-
         buffer
     }
 }
@@ -65,17 +62,13 @@ mod tests {
 
     #[test]
     fn test_rc4() {
-        let mut rc4 = RC4::new(b"this is a test key");
-
-        #[allow(clippy::redundant_clone)]
-            let rc4_copy = rc4.clone();
-
+        let key_stream = RC4::new(b"this is a test key").get_key_stream::<11>();
         let mut data = *b"hello world";
-        for p in data.iter_mut() {
-            *p ^= rc4.next();
+
+        for (p, key) in data.iter_mut().zip(key_stream) {
+            *p ^= key;
         }
 
-        assert_ne!(rc4.state, rc4_copy.state);
         assert_eq!(&data, b"\x68\x75\x6b\x64\x64\x24\x7f\x60\x7c\x7d\x60")
     }
 }

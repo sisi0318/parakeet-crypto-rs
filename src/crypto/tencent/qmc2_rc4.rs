@@ -31,7 +31,7 @@ impl Version2RC4 {
         Self {
             key: key.into(),
             key_hash: calc_key_hash(key),
-            key_stream: RC4::get_key_stream::<KEY_STREAM_LEN>(key),
+            key_stream: RC4::new(key).get_key_stream(),
         }
     }
 
