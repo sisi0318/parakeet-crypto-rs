@@ -27,6 +27,8 @@ venv/
 *.mp3
 *.dff
 
+!src/**/*.bin
+
 !**/__fixture__/*
 !**/sample/*
 
