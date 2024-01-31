@@ -1,5 +1,5 @@
 lazy_static! {
-    static ref QMC1_MAP_KEY: [u8; 128] = include_bytes!("./qmc1_map.bin").clone();
+    static ref QMC1_MAP_KEY: [u8; 128] = *include_bytes!("./qmc1_map.bin");
 }
 
 pub fn decrypt_qmc1(offset: usize, buffer: &mut [u8]) {

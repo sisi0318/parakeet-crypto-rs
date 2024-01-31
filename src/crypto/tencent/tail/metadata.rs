@@ -3,7 +3,7 @@ use super::ekey::KeyDecryptError;
 /// Tail metadata extracted from "v1" and "v2" QMPC, up to v19.51
 /// "v2" introduced an extra key scrambler. The `key` field in this struct will have
 /// the unscrambled ekey.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PcLegacyMetadata {
     /// Size of the payload to trim off the end of the file.
     pub tail_len: usize,
@@ -14,7 +14,7 @@ pub struct PcLegacyMetadata {
 /// Tail metadata extracted from "v3" QMPC, first introduced in QMPC v19.57
 /// The raw metadata contains `media_id` and `media_filename` in UTF16-LE encoding,
 /// and it has been downgraded to ASCII (which is UTF-8 compatible).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PcMusicExMetadata {
     /// Size of the payload to trim off the end of the file.
     pub tail_len: usize,
@@ -26,7 +26,7 @@ pub struct PcMusicExMetadata {
     pub media_filename: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AndroidQTagMetadata {
     /// Size of the payload to trim off the end of the file.
     pub tail_len: usize,
@@ -38,7 +38,7 @@ pub struct AndroidQTagMetadata {
     pub resource_id: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AndroidSTag {
     /// Size of the payload to trim off the end of the file.
     pub tail_len: usize,
@@ -50,7 +50,7 @@ pub struct AndroidSTag {
     pub media_numeric_id: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TailParseResult {
     /// Tail parsed from legacy "v1" and "v2" encoded file, used in QMPC up to 19.51.
     PcLegacy(PcLegacyMetadata),
@@ -58,13 +58,14 @@ pub enum TailParseResult {
     /// The metadata had magic `"musicex\x00"` in the end.
     PcMusicEx(PcMusicExMetadata),
     /// Tail parsed with "QTag" in the end.
-    /// The `key` is embedded to the metadata metadata.
+    /// The `key` is embedded to the metadata.
     AndroidQTag(AndroidQTagMetadata),
     /// Tail parsed with "QTag" in the end.
     /// One should look at their app internal database and lookup the filename.
     AndroidSTag(AndroidSTag),
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum TailParseError {
     /// No valid/supported metadata metadata found.
     InvalidTail,

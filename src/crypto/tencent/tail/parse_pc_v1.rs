@@ -1,7 +1,9 @@
+use byteorder::ByteOrder;
+
+use crate::utils::validate::is_base64_str;
+
 use super::ekey::{decrypt_ekey, MAX_EKEY_LEN};
 use super::metadata::{PcLegacyMetadata, TailParseError, TailParseResult};
-use crate::utils::validate::is_base64_str;
-use byteorder::ByteOrder;
 
 pub fn parse_pc_v1(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
     if raw.len() < 8 {
@@ -38,4 +40,31 @@ pub fn parse_pc_v1(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
         tail_len,
         key,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_legacy_ekey_v2() {
+        let footer = *include_bytes!("__fixtures__/ekey_enc_v2.bin");
+        let actual = parse_pc_v1(&footer);
+        let expected = Ok(TailParseResult::PcLegacy(PcLegacyMetadata {
+            key: Box::from(*include_bytes!("__fixtures__/ekey_enc_v2_result.bin")),
+            tail_len: 0x229,
+        }));
+        assert_eq!(actual, expected, "failed to parse enc_v2_map sample");
+    }
+
+    #[test]
+    fn test_legacy_ekey_v1() {
+        let footer = *include_bytes!("__fixtures__/ekey_enc_v1.bin");
+        let actual = parse_pc_v1(&footer);
+        let expected = Ok(TailParseResult::PcLegacy(PcLegacyMetadata {
+            key: Box::from(*include_bytes!("__fixtures__/ekey_enc_v1_result.bin")),
+            tail_len: 0x2C4,
+        }));
+        assert_eq!(actual, expected, "failed to parse enc_v1_rc4 sample");
+    }
 }

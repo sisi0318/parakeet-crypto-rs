@@ -1,16 +1,20 @@
-use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 use std::ops::Mul;
+
+use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 
 pub const MAX_EKEY_LEN: usize = 0x500;
 pub const EKEY_V2_PREFIX: &[u8; 24] = b"UVFNdXNpYyBFbmNWMixLZXk6";
 
-const V2_TEA_KEY_1: &[u8; 16] = b"386ZJY!@#*$%^&)(";
-const V2_TEA_KEY_2: &[u8; 16] = b"**#!(#$%&^a1cZ,T";
+lazy_static! {
+    static ref V2_TEA_KEY: [u8; 32] = *include_bytes!("ekey.bin");
+}
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum KeyDecryptError {
     EkeyTooShort,
     FailDecryptV1,
     FailDecryptV2,
+    Base64Decoding,
 }
 
 pub fn make_simple_key<const N: usize>() -> [u8; N] {
@@ -27,10 +31,11 @@ pub fn make_simple_key<const N: usize>() -> [u8; N] {
 }
 
 pub fn decrypt_v1(ekey: &[u8]) -> Result<Box<[u8]>, KeyDecryptError> {
-    if ekey.len() < 5 {
+    if ekey.len() < 12 {
         return Err(KeyDecryptError::EkeyTooShort);
     }
 
+    let ekey = base64_decode(ekey)?;
     let (header, cipher) = ekey.split_at(8);
 
     let simple_key = make_simple_key::<8>();
@@ -44,24 +49,25 @@ pub fn decrypt_v1(ekey: &[u8]) -> Result<Box<[u8]>, KeyDecryptError> {
     Ok([header, &plaintext].concat().into())
 }
 
+fn base64_decode(ekey: &[u8]) -> Result<Box<[u8]>, KeyDecryptError> {
+    Base64
+        .decode(ekey)
+        .map(|decoded| decoded.into())
+        .map_err(|_| KeyDecryptError::Base64Decoding)
+}
+
 pub fn decrypt_v2(ekey: &[u8]) -> Result<Box<[u8]>, KeyDecryptError> {
-    let ekey = tc_tea::decrypt(ekey, V2_TEA_KEY_1).ok_or(KeyDecryptError::FailDecryptV2)?;
-    let ekey = tc_tea::decrypt(ekey, V2_TEA_KEY_2).ok_or(KeyDecryptError::FailDecryptV2)?;
+    let (key1, key2) = V2_TEA_KEY.split_at(16);
+    let ekey = base64_decode(ekey)?;
+    let ekey = tc_tea::decrypt(ekey, key1).ok_or(KeyDecryptError::FailDecryptV2)?;
+    let ekey = tc_tea::decrypt(ekey, key2).ok_or(KeyDecryptError::FailDecryptV2)?;
 
-    // Strip nil bytes at the end.
-    let ekey = match ekey.iter().rposition(|&x| x != 0) {
-        Some(pos) => {
-            let mut ekey_vec = ekey.to_vec();
-            ekey_vec.truncate(pos + 1);
-            ekey_vec.into()
-        }
-        None => ekey,
-    };
-
-    match Base64.decode(ekey) {
-        Ok(ekey) => decrypt_v1(&ekey),
-        _ => Err(KeyDecryptError::FailDecryptV2),
+    let mut ekey = ekey.to_vec();
+    if let Some(p) = ekey.iter().rposition(|&x| x != 0) {
+        ekey.truncate(p + 1);
     }
+
+    decrypt_v1(&ekey)
 }
 
 pub fn decrypt_ekey<T: AsRef<[u8]>>(ekey: T) -> Result<Box<[u8]>, KeyDecryptError> {
