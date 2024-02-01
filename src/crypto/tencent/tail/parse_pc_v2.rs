@@ -34,18 +34,21 @@ fn from_ascii_utf16(data: &[u16]) -> String {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[repr(C, packed)]
 struct MusicExV1 {
+    /// unused & unknown
     unknown_0: u32,
-    // unused & unknown
+    /// unused & unknown
     unknown_1: u32,
-    // unused & unknown
+    /// unused & unknown
     unknown_2: u32,
-    // unused & unknown
+
+    /// Media ID
     mid: [u16; 30],
-    // Media ID
+    /// Media file name
     #[serde(with = "BigArray")]
     media_filename: [u16; 50],
-    // real file name
-    unknown_3: u32, // unused; uninitialized memory?
+
+    /// unused; uninitialized memory?
+    unknown_3: u32,
 }
 
 fn parse_musicex_v1(tail: &[u8]) -> Result<TailParseResult, TailParseError> {
