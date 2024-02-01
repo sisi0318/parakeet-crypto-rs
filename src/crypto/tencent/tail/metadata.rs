@@ -39,7 +39,7 @@ pub struct AndroidQTagMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct AndroidSTag {
+pub struct AndroidSTagMetadata {
     /// Size of the payload to trim off the end of the file.
     pub tail_len: usize,
     /// Should always be `2`.
@@ -62,7 +62,7 @@ pub enum TailParseResult {
     AndroidQTag(AndroidQTagMetadata),
     /// Tail parsed with "QTag" in the end.
     /// One should look at their app internal database and lookup the filename.
-    AndroidSTag(AndroidSTag),
+    AndroidSTag(AndroidSTagMetadata),
 }
 
 #[derive(Debug, Clone, PartialEq)]
