@@ -7,7 +7,7 @@ use crate::crypto::tencent::tail::metadata::{
 };
 use crate::utils::validate::is_base64_str;
 
-pub fn parse_android_stag(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
+pub fn parse_android_qtag(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
     if raw.len() < 8 {
         Err(NeedMoreBytes(8))?;
     }
