@@ -2,8 +2,8 @@ use byteorder::ByteOrder;
 
 use crate::utils::validate::is_base64_str;
 
-use super::ekey::{decrypt_ekey, MAX_EKEY_LEN};
 use super::metadata::{PcLegacyMetadata, TailParseError, TailParseResult};
+use crate::crypto::tencent::ekey::{decrypt, MAX_EKEY_LEN};
 
 pub fn parse_pc_v1(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
     if raw.len() < 8 {
@@ -35,7 +35,7 @@ pub fn parse_pc_v1(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
         return Err(TailParseError::InvalidTail);
     }
 
-    let key = decrypt_ekey(ekey).map_err(TailParseError::EKeyDecryptionFailure)?;
+    let key = decrypt(ekey).map_err(TailParseError::EKeyDecryptionFailure)?;
     Ok(TailParseResult::PcLegacy(PcLegacyMetadata {
         tail_len,
         key,

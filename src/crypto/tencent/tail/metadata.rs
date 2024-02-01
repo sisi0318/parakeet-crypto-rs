@@ -1,4 +1,4 @@
-use super::ekey::KeyDecryptError;
+use crate::crypto::tencent::ekey::KeyDecryptError;
 
 /// Tail metadata extracted from "v1" and "v2" QMPC, up to v19.51
 /// "v2" introduced an extra key scrambler. The `key` field in this struct will have

@@ -5,6 +5,7 @@ mod qmc;
 mod qmc2_map;
 mod qmc2_rc4;
 
+mod ekey;
 mod rc4;
 mod tail;
 
