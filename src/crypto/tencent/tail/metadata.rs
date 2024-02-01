@@ -34,8 +34,8 @@ pub struct AndroidQTagMetadata {
     pub key: Box<[u8]>,
     /// Tag version associated to the metadata. Should be `2`.
     pub tag_version: u32,
-    /// The old, numeric of the resource (`.id`).
-    pub resource_id: String,
+    /// The old, numeric id of the resource (`.id`).
+    pub resource_id: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]

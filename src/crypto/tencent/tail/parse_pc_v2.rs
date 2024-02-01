@@ -1,19 +1,17 @@
-use super::metadata::{PcMusicExMetadata, TailParseError, TailParseResult};
 use bincode::Options;
 use byteorder::ByteOrder;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-const V2_TAG_MAGIC: &[u8; 8] = b"musicex\x00";
+use super::metadata::{PcMusicExMetadata, TailParseError, TailParseResult};
 
 pub fn parse_pc_v2(raw: &[u8]) -> Result<TailParseResult, TailParseError> {
     if raw.len() < 16 {
         return Err(TailParseError::NeedMoreBytes(16));
     }
 
-    // tail_identifier = (u32, [u8; 8])
     let (tail, tail_identifier) = raw.split_at(raw.len() - 12);
-    if !V2_TAG_MAGIC.eq(&tail_identifier[4..]) {
+    if !tail_identifier.ends_with(b"musicex\x00") {
         return Err(TailParseError::InvalidTail);
     }
 
@@ -36,12 +34,17 @@ fn from_ascii_utf16(data: &[u16]) -> String {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[repr(C, packed)]
 struct MusicExV1 {
-    unknown_0: u32, // unused & unknown
-    unknown_1: u32, // unused & unknown
-    unknown_2: u32, // unused & unknown
-    mid: [u16; 30], // Media ID
+    unknown_0: u32,
+    // unused & unknown
+    unknown_1: u32,
+    // unused & unknown
+    unknown_2: u32,
+    // unused & unknown
+    mid: [u16; 30],
+    // Media ID
     #[serde(with = "BigArray")]
-    media_filename: [u16; 50], // real file name
+    media_filename: [u16; 50],
+    // real file name
     unknown_3: u32, // unused; uninitialized memory?
 }
 
