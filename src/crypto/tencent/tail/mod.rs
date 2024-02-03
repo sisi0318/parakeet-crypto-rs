@@ -1,6 +1,6 @@
 pub use parse::parse as parse_tail;
 
-mod metadata;
+pub mod metadata;
 mod parse;
 mod parse_android_qtag;
 mod parse_android_stag;

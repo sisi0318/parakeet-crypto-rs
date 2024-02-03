@@ -62,7 +62,7 @@ fn parse_musicex_v1(tail: &[u8]) -> Result<TailParseResult, TailParseError> {
     let decoded = bincode::options()
         .with_little_endian()
         .deserialize::<MusicExV1>(payload)
-        .map_err(|_| TailParseError::CountNotDeserialize)?;
+        .map_err(|_| TailParseError::CouldNotDeserializeMusicExPayload)?;
 
     let mid = decoded.mid;
     let mid = from_ascii_utf16(&mid);

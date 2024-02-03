@@ -3,6 +3,7 @@ pub(self) mod utils;
 pub(crate) mod commands;
 pub(crate) mod logger;
 
+mod cli_error;
 mod cli_handle_kugou;
 mod cli_handle_qmc1;
 mod cli_handle_qmc2;

@@ -1,7 +1,10 @@
 use std::{fs::File, process};
 
 use argh::FromArgs;
+
 use parakeet_crypto::filters::{QMC1Static, QMC1StaticReader};
+
+use crate::cli::cli_error::ParakeetCliError;
 
 use super::{
     logger::CliLogger,
@@ -25,7 +28,7 @@ pub struct QMC1Options {
     output_file: CliFilePath,
 }
 
-pub fn cli_handle_qmc1(args: QMC1Options) {
+pub fn cli_handle_qmc1(args: QMC1Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("QMC1");
 
     let qmc1 = match args.static_key.content.len() {
@@ -33,7 +36,7 @@ pub fn cli_handle_qmc1(args: QMC1Options) {
         256 => QMC1Static::new_key256(args.static_key.content[..].try_into().unwrap()),
         _ => {
             log.error("key rejected -- invalid length");
-            return;
+            Err(ParakeetCliError::UnspecifiedError)?
         }
     };
 
@@ -53,4 +56,5 @@ pub fn cli_handle_qmc1(args: QMC1Options) {
     });
 
     log.info("Decryption OK.");
+    Ok(())
 }

@@ -13,31 +13,31 @@ pub enum Level {
 
 #[allow(dead_code)]
 impl CliLogger {
-    pub fn new(module: &str) -> Self {
+    pub fn new<S: AsRef<str>>(module: S) -> Self {
         Self {
-            module: format!("{:>5}", module),
+            module: format!("{:>5}", module.as_ref()),
         }
     }
 
-    pub fn log(&self, level: Level, msg: &str) {
+    pub fn log<S: AsRef<str>>(&self, level: Level, msg: S) {
         let level = format!("{:?}", level).to_uppercase();
-        eprintln!("[{}][{:>5}] {}", self.module, level, msg);
+        eprintln!("[{}][{:>5}] {}", self.module, level, msg.as_ref());
     }
 
-    pub fn info(&self, msg: &str) {
+    pub fn info<S: AsRef<str>>(&self, msg: S) {
         self.log(Level::Info, msg);
     }
 
-    pub fn error(&self, msg: &str) {
+    pub fn error<S: AsRef<str>>(&self, msg: S) {
         self.log(Level::Error, msg);
     }
 
-    pub fn warn(&self, msg: &str) {
+    pub fn warn<S: AsRef<str>>(&self, msg: S) {
         self.log(Level::Warn, msg);
     }
 
     #[allow(unused_variables)]
-    pub fn debug(&self, msg: &str) {
+    pub fn debug<S: AsRef<str>>(&self, msg: S) {
         #[cfg(debug_assertions)]
         self.log(Level::Debug, msg);
     }

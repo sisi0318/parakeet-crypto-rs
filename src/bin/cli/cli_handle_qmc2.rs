@@ -1,73 +1,141 @@
-use std::{fs::File, process};
+use std::cmp::min;
+use std::fs::File;
+use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::str::FromStr;
 
 use argh::FromArgs;
-use parakeet_crypto::filters::{QMC2Map, QMC2Reader, QMCFooterParser, QMC2RC4};
 
-use crate::cli::logger::CliLogger;
+use parakeet_crypto::crypto::tencent;
+use parakeet_crypto::crypto::tencent::{ekey, QMCv2};
 
-use super::utils::{CliBinaryArray, CliFilePath};
+use crate::cli::cli_error::ParakeetCliError;
 
-/// Handle QMC2 File.
+use super::{
+    logger::CliLogger,
+    utils::{CliBinaryContent, CliFilePath},
+};
+
+#[derive(Debug, Eq, PartialEq)]
+enum QMCKeyType {
+    EKey = 1,
+    Key = 0,
+}
+
+impl FromStr for QMCKeyType {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ekey" => Ok(QMCKeyType::EKey),
+            "key" => Ok(QMCKeyType::Key),
+            _ => Err(Self::Err::new(ErrorKind::InvalidInput, "invalid key type")),
+        }
+    }
+}
+
+/// Handle QMCv2 File.
 #[derive(Debug, Eq, PartialEq, FromArgs)]
 #[argh(subcommand, name = "qmc2")]
 pub struct QMC2Options {
-    /// embed key decryption seed.
-    #[argh(option)]
-    seed: u8,
+    /// encryption key
+    #[argh(option, short = 'k')]
+    key: Option<CliBinaryContent>,
 
-    /// mix key 1 (aka stage 1 key) for EncV2.
-    #[argh(option)]
-    key1: Option<CliBinaryArray<16>>,
+    /// key type, default to "ekey".
+    /// when absent, this will attempt to extract from tail.
+    #[argh(option, short = 't', default = "QMCKeyType::EKey")]
+    key_type: QMCKeyType,
 
-    /// mix key 2 (aka stage 2 key) for EncV2.
+    /// number of bytes to trim off the tail.
+    /// when key is provided, this will default to 0.
+    /// when key is absent, this will auto-detect from tail.
     #[argh(option)]
-    key2: Option<CliBinaryArray<16>>,
+    tail_trim: Option<i64>,
 
-    /// input file path.
-    #[argh(positional)]
+    /// input file name/path
+    #[argh(option, short = 'i', long = "input")]
     input_file: CliFilePath,
 
-    /// output file path.
-    #[argh(positional)]
+    /// output file name/path
+    #[argh(option, short = 'o', long = "output")]
     output_file: CliFilePath,
 }
 
-pub fn cli_handle_qmc2(args: QMC2Options) {
-    let log = CliLogger::new("QMC2");
+const TAIL_BUF_LEN: usize = 1024;
+const DECRYPTION_BUFFER_SIZE: usize = 2 * 1024 * 1024;
 
-    let mut parser = QMCFooterParser::new(args.seed);
+pub fn cli_handle_qmc2(args: QMC2Options) -> Result<(), ParakeetCliError> {
+    let log = CliLogger::new("QMCv2");
 
-    if let Some(key1) = args.key1 {
-        parser.set_key_stage1(key1.content);
-        log.info("(EncV2) Stage 1 key accepted.");
+    let mut src = File::open(args.input_file.path).map_err(ParakeetCliError::SourceIoError)?;
+    let mut dst = File::create(args.output_file.path).map_err(ParakeetCliError::SourceIoError)?;
+
+    // Parse input file tail first
+    let mut tail_buf = vec![0u8; TAIL_BUF_LEN].into_boxed_slice();
+    src.seek(SeekFrom::End(-(TAIL_BUF_LEN as i64)))
+        .map_err(ParakeetCliError::SourceIoError)?;
+    src.read(&mut tail_buf)
+        .map_err(ParakeetCliError::SourceIoError)?;
+    let file_size = src
+        .stream_position()
+        .map_err(ParakeetCliError::SourceIoError)?;
+    src.seek(SeekFrom::Start(0))
+        .map_err(ParakeetCliError::SourceIoError)?;
+
+    let tail_result = tencent::parse_tail(&tail_buf);
+
+    let (key, tail_len) = match args.key {
+        Some(user_key) => {
+            let key = match args.key_type {
+                QMCKeyType::Key => user_key.content,
+                QMCKeyType::EKey => ekey::decrypt(user_key.content)
+                    .map_err(ParakeetCliError::QMCKeyDecryptionError)?,
+            };
+            let tail_len = match args.tail_trim {
+                Some(value) => value as usize,
+                None => match tail_result {
+                    Ok(m) => m.get_tail_len(),
+                    _ => 0,
+                },
+            };
+            (key, tail_len)
+        }
+        None => {
+            let tail_result = tail_result.map_err(ParakeetCliError::QMCTailParseError)?;
+            let tail_key = tail_result
+                .get_key()
+                .ok_or(ParakeetCliError::QMCKeyRequired)?;
+            (Box::from(tail_key), tail_result.get_tail_len())
+        }
+    };
+
+    log.info(&format!(
+        "key accepted (key_len={}, tail_len={})",
+        key.len(),
+        tail_len
+    ));
+
+    let qmc2 = QMCv2::from_key(key);
+    let mut buffer = vec![0u8; DECRYPTION_BUFFER_SIZE];
+    let mut offset: usize = 0;
+    let file_size = file_size as usize;
+    let mut bytes_to_decrypt = file_size - tail_len;
+    log.info("begin decryption...");
+    while bytes_to_decrypt > 0 {
+        let block_len = min(buffer.len(), bytes_to_decrypt);
+        log.debug(format!(
+            "decrypt: offset={}, bytes_to_decrypt={}, block_len={}, file_size={}",
+            offset, bytes_to_decrypt, block_len, file_size
+        ));
+
+        let mut block = &mut buffer[..block_len];
+        src.read_exact(block)
+            .map_err(ParakeetCliError::SourceIoError)?;
+        qmc2.decrypt(offset, &mut block);
+        dst.write_all(block)
+            .map_err(ParakeetCliError::DestinationIoError)?;
+        offset += block_len;
+        bytes_to_decrypt -= block_len;
     }
-
-    if let Some(key2) = args.key2 {
-        parser.set_key_stage2(key2.content);
-        log.info("(EncV2) Stage 2 key accepted.");
-    }
-
-    if args.input_file.path == args.output_file.path {
-        log.error("Decrypt the file in-place will not work.");
-        process::exit(1);
-    }
-
-    let mut src = File::open(args.input_file.path).unwrap();
-    let mut dst = File::create(args.output_file.path).unwrap();
-
-    let mut qmc2_map = QMC2Map::new_default();
-    let mut qmc2_rc4 = QMC2RC4::new_default();
-
-    let mut qmc2_reader = QMC2Reader::new(&mut parser, &mut qmc2_map, &mut qmc2_rc4, &mut src)
-        .unwrap_or_else(|err| {
-            log.error(&format!("init qmc2 reader failed: {err}"));
-            process::exit(1)
-        });
-
-    std::io::copy(&mut qmc2_reader, &mut dst).unwrap_or_else(|err| {
-        log.error(&format!("transform failed: {err}"));
-        process::exit(1)
-    });
-
     log.info("Decryption OK.");
+    Ok(())
 }

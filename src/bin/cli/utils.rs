@@ -3,19 +3,17 @@ use std::{fs, path::Path};
 use argh::FromArgValue;
 use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 
-pub fn read_key_from_parameter(value: &str) -> Option<Box<[u8]>> {
+pub fn parse_binary_data_from_string(value: &str) -> Option<Box<[u8]>> {
     if let Some(value) = value.strip_prefix('@') {
-        let file_content = fs::read(Path::new(value)).unwrap();
-        Some(file_content.into())
+        Some(fs::read(Path::new(value)).ok()?.into())
     } else if let Some(value) = value.strip_prefix("base64:") {
-        let content = Base64.decode(value).unwrap();
-        Some(content.into())
+        Some(Base64.decode(value).ok()?.into())
     } else if let Some(value) = value.strip_prefix("hex:") {
-        let content = hex::decode(value.replace(' ', "")).unwrap();
-        Some(content.into())
+        Some(hex::decode(value.replace(' ', "")).ok()?.into())
     } else if let Some(value) = value.strip_prefix("raw:") {
-        let content = value.as_bytes();
-        Some(content.into())
+        Some(value.as_bytes().into())
+    } else if !value.is_empty() {
+        Some(value.as_bytes().into())
     } else {
         None
     }
@@ -28,7 +26,7 @@ pub struct CliBinaryContent {
 
 impl FromArgValue for CliBinaryContent {
     fn from_arg_value(value: &str) -> Result<Self, String> {
-        if let Some(parsed) = read_key_from_parameter(value) {
+        if let Some(parsed) = parse_binary_data_from_string(value) {
             Ok(Self { content: parsed })
         } else {
             Err(String::from("could not parse"))
@@ -43,7 +41,7 @@ pub struct CliBinaryArray<const SIZE: usize> {
 
 impl<const SIZE: usize> FromArgValue for CliBinaryArray<SIZE> {
     fn from_arg_value(value: &str) -> Result<Self, String> {
-        if let Some(parsed) = read_key_from_parameter(value) {
+        if let Some(parsed) = parse_binary_data_from_string(value) {
             if parsed.len() == SIZE {
                 let mut buffer = [0u8; SIZE];
                 buffer.copy_from_slice(&parsed);

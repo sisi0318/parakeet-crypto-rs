@@ -1,3 +1,4 @@
+use thiserror::Error;
 use crate::crypto::tencent::ekey::KeyDecryptError;
 
 /// Tail metadata extracted from "v1" and "v2" QMPC, up to v19.51
@@ -65,20 +66,45 @@ pub enum TailParseResult {
     AndroidSTag(AndroidSTagMetadata),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl TailParseResult {
+    pub fn get_key(&self) -> Option<&[u8]> {
+        match self {
+            TailParseResult::PcLegacy(m) => Some(&m.key),
+            TailParseResult::AndroidQTag(m) => Some(&m.key),
+            _ => None,
+        }
+    }
+
+    pub fn get_tail_len(&self) -> usize {
+        match self {
+            TailParseResult::PcLegacy(m) => m.tail_len,
+            TailParseResult::PcMusicEx(m) => m.tail_len,
+            TailParseResult::AndroidQTag(m) => m.tail_len,
+            TailParseResult::AndroidSTag(m) => m.tail_len,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum TailParseError {
     /// No valid/supported metadata metadata found.
+    #[error("no valid tail found")]
     InvalidTail,
 
     /// Error when decoding the ekey.
+    #[error("failed to decrypt ekey from tail: {0}")]
     EKeyDecryptionFailure(KeyDecryptError),
 
     /// Found a musicex tag but unsupported version
+    #[error("MusicEx tail: unsupported tag version {0}")]
     UnsupportedMusicExVersion(u32),
     /// Found a supported musicex tag, but the size is not supported.
+    #[error("MusicEx tail: unexpected payload size {0}")]
     UnsupportedMusicExPayloadSize(usize),
-    CountNotDeserialize,
-
+    /// Failed to deserialize musicex payload
+    #[error("MusicEx tail: unable to deserialize payload")]
+    CouldNotDeserializeMusicExPayload,
     /// Need more bytes. The first parameter is the size it required.
+    #[error("need more bytes - expecting tail buffer with at least {0} bytes")]
     NeedMoreBytes(usize),
 }

@@ -6,9 +6,9 @@ const INITIAL_SEGMENT_SIZE: usize = 0x80;
 const OTHER_SEGMENT_SIZE: usize = 0x1400;
 const KEY_STREAM_LEN: usize = 0x1FF + OTHER_SEGMENT_SIZE;
 
-pub struct Version2RC4 {
+pub struct QMCv2RC4 {
     key: Box<[u8]>,
-    key_stream: [u8; KEY_STREAM_LEN],
+    key_stream: Box<[u8; KEY_STREAM_LEN]>,
     key_hash: u32,
 }
 
@@ -26,12 +26,12 @@ fn calc_key_hash(key: &[u8]) -> u32 {
     hash
 }
 
-impl Version2RC4 {
+impl QMCv2RC4 {
     pub fn new(key: &[u8]) -> Self {
         Self {
             key: key.into(),
             key_hash: calc_key_hash(key),
-            key_stream: RC4::new(key).get_key_stream(),
+            key_stream: Box::from(RC4::new(key).get_key_stream()),
         }
     }
 

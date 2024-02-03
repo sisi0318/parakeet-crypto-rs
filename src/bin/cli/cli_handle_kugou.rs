@@ -1,5 +1,6 @@
 use std::{fs::File, io::copy, process};
 
+use crate::cli::cli_error::ParakeetCliError;
 use argh::FromArgs;
 use parakeet_crypto::filters::{
     file_header::KGMHeader, KGMCryptoConfig, KugouDecryptReader, KugouEncryptReader,
@@ -40,7 +41,7 @@ pub struct KugouOptions {
     output_file: CliFilePath,
 }
 
-pub fn cli_handle_kugou(args: KugouOptions) {
+pub fn cli_handle_kugou(args: KugouOptions) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("Kugou");
 
     let mut config = KGMCryptoConfig::default();
@@ -85,4 +86,5 @@ pub fn cli_handle_kugou(args: KugouOptions) {
     });
 
     log.info(&format!("{} OK.", operation));
+    Ok(())
 }

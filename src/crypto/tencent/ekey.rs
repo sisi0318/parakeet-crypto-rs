@@ -1,15 +1,24 @@
 use std::ops::Mul;
 
 use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
+use thiserror::Error;
 
 pub const MAX_EKEY_LEN: usize = 0x500;
 pub const EKEY_V2_PREFIX: &[u8; 24] = b"UVFNdXNpYyBFbmNWMixLZXk6";
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum KeyDecryptError {
-    EkeyTooShort,
+    /// EKey is too short for decryption.
+    #[error("EKey is too short for decryption")]
+    EKeyTooShort,
+    /// There's an error when decoding ekey v1.
+    #[error("Error when decrypting ekey v1")]
     FailDecryptV1,
+    /// There's an error when unscramble ekey v2.
+    #[error("Error when decrypting ekey v2")]
     FailDecryptV2,
+    /// Failed to read base64 content from ekey
+    #[error("Error when decoding ekey via base64")]
     Base64Decoding,
 }
 
@@ -28,7 +37,7 @@ fn make_simple_key<const N: usize>() -> [u8; N] {
 
 fn decrypt_v1(ekey: &[u8]) -> Result<Box<[u8]>, KeyDecryptError> {
     if ekey.len() < 12 {
-        return Err(KeyDecryptError::EkeyTooShort);
+        return Err(KeyDecryptError::EKeyTooShort);
     }
 
     let ekey = base64_decode(ekey)?;

@@ -1,8 +1,8 @@
-pub struct Version2Map {
+pub struct QMCv2Map {
     key: [u8; 128],
 }
 
-pub fn qmc2_key_to_qmc1(key_blob: &[u8]) -> [u8; 128] {
+fn qmc2_key_to_qmc1(key_blob: &[u8]) -> [u8; 128] {
     let mut key128 = [0u8; 128];
 
     if !key_blob.is_empty() {
@@ -23,7 +23,7 @@ pub fn qmc2_key_to_qmc1(key_blob: &[u8]) -> [u8; 128] {
     key128
 }
 
-impl Version2Map {
+impl QMCv2Map {
     pub fn new(file_key: &[u8]) -> Self {
         let key = qmc2_key_to_qmc1(file_key);
         Self { key }

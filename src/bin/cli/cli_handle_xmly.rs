@@ -1,5 +1,6 @@
 use std::{fs::File, process};
 
+use crate::cli::cli_error::ParakeetCliError;
 use argh::FromArgs;
 use parakeet_crypto::filters::{XimalayaCrypto, XimalayaReader, SCRAMBLE_HEADER_LEN};
 
@@ -45,7 +46,7 @@ pub struct XimalayaOptions {
     output_file: CliFilePath,
 }
 
-pub fn cli_handle_xmly(args: XimalayaOptions) {
+pub fn cli_handle_xmly(args: XimalayaOptions) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("XMLY");
 
     let xmly_crypto = if let Some(scramble_table_arg) = args.scramble_table {
@@ -98,4 +99,5 @@ pub fn cli_handle_xmly(args: XimalayaOptions) {
     });
 
     log.info(&format!("{} OK.", operation));
+    Ok(())
 }
