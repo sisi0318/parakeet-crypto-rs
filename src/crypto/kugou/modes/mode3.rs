@@ -1,6 +1,7 @@
 use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
 use crate::utils::md5;
 
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Mode3 {
     slot_key_hash: [u8; 16],
     file_key_hash: [u8; 17],

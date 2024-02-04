@@ -25,7 +25,7 @@ pub struct Header {
     pub file_key: [u8; 16],
 }
 
-#[derive(Debug, Error)]
+#[derive(Error, Debug)]
 pub enum HeaderError {
     #[error("Could not deserialize header from bytes: {0}")]
     SerializationIoError(std::io::Error),

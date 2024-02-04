@@ -1,3 +1,5 @@
 mod header;
 mod modes;
-mod slots;
+
+pub use header::{Header, HeaderError, HeaderResult, MediaType};
+pub use modes::{CipherError, CipherModes, Mode2, Mode3, Mode4, SLOT_KEYS};

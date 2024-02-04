@@ -1,5 +1,6 @@
 use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
 
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Mode2 {
     slot_key: Box<[u8]>,
 }

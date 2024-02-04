@@ -3,6 +3,7 @@ use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
 use crate::utils::md5;
 
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Mode4 {
     slot_key_table: Box<[u8]>,
     file_key_table: Box<[u8]>,
