@@ -1,5 +1,5 @@
 use map::map_l;
-pub use qmc1::decrypt_qmc1;
+pub use qmc1::{decrypt_qmc1, encrypt_qmc1};
 pub use qmc2::QMCv2;
 pub use qmc2_map::QMCv2Map;
 pub use qmc2_rc4::QMCv2RC4;

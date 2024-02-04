@@ -7,3 +7,7 @@ pub fn decrypt_qmc1(offset: usize, buffer: &mut [u8]) {
         i += 1;
     }
 }
+
+pub fn encrypt_qmc1(offset: usize, buffer: &mut [u8]) {
+    decrypt_qmc1(offset, buffer)
+}

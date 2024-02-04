@@ -36,4 +36,8 @@ impl QMCv2Map {
             i += 1;
         }
     }
+
+    pub fn encrypt(&self, offset: usize, buffer: &mut [u8]) {
+        self.decrypt(offset, buffer)
+    }
 }

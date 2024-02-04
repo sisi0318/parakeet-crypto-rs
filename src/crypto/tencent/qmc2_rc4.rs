@@ -103,4 +103,8 @@ impl QMCv2RC4 {
             offset += len;
         }
     }
+
+    pub fn encrypt(&self, offset: usize, buffer: &mut [u8]) {
+        self.decrypt(offset, buffer)
+    }
 }
