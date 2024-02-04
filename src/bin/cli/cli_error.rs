@@ -17,5 +17,6 @@ pub enum ParakeetCliError {
     QMCKeyRequired,
 
     #[error("Unspecified error (placeholder)")]
+    #[allow(dead_code)]
     UnspecifiedError,
 }
