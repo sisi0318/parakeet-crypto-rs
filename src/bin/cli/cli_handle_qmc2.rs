@@ -9,6 +9,7 @@ use parakeet_crypto::crypto::tencent;
 use parakeet_crypto::crypto::tencent::{ekey, QMCv2};
 
 use crate::cli::cli_error::ParakeetCliError;
+use crate::cli::utils::DECRYPTION_BUFFER_SIZE;
 
 use super::{
     logger::CliLogger,
@@ -61,13 +62,13 @@ pub struct QMC2Options {
 }
 
 const TAIL_BUF_LEN: usize = 1024;
-const DECRYPTION_BUFFER_SIZE: usize = 2 * 1024 * 1024;
 
 pub fn cli_handle_qmc2(args: QMC2Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("QMCv2");
 
     let mut src = File::open(args.input_file.path).map_err(ParakeetCliError::SourceIoError)?;
-    let mut dst = File::create(args.output_file.path).map_err(ParakeetCliError::SourceIoError)?;
+    let mut dst =
+        File::create(args.output_file.path).map_err(ParakeetCliError::DestinationIoError)?;
 
     // Parse input file tail first
     let mut tail_buf = vec![0u8; TAIL_BUF_LEN].into_boxed_slice();

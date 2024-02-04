@@ -3,6 +3,8 @@ use std::{fs, path::Path};
 use argh::FromArgValue;
 use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 
+pub const DECRYPTION_BUFFER_SIZE: usize = 2 * 1024 * 1024;
+
 pub fn parse_binary_data_from_string(value: &str) -> Option<Box<[u8]>> {
     if let Some(value) = value.strip_prefix('@') {
         Some(fs::read(Path::new(value)).ok()?.into())
