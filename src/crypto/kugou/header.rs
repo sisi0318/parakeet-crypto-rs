@@ -25,23 +25,37 @@ pub struct Header {
     pub file_key: [u8; 16],
 }
 
+pub const MIN_HEADER_LEN: usize = 16 * 3 + 4 * 3;
+
 #[derive(Error, Debug)]
-pub enum HeaderError {
-    #[error("Could not deserialize header from bytes: {0}")]
+pub enum HeaderSerializeError {
+    #[error("Could not serialize header: {0}")]
     SerializationIoError(std::io::Error),
-    #[error("Could not deserialize header from bytes: {0}")]
-    HeaderLenTooSmall(usize),
-    #[error("Does not include a valid magic header")]
-    InvalidMagic,
+    #[error("Could not serialize header, `hdr.header_len` needs to be equal or greater than {1} bytes (got {0})")]
+    HeaderLenFieldTooSmall(usize, usize),
 }
 
-impl From<std::io::Error> for HeaderError {
+#[derive(Error, Debug)]
+pub enum HeaderDeserializeError {
+    #[error("Could not deserialize header from bytes: {0}")]
+    DeserializationIoError(std::io::Error),
+    #[error("Does not include a valid magic header")]
+    InvalidMagic,
+    #[error("Could not deserialize header, `hdr.header_len` is lower than {1} bytes (got {0})")]
+    InputHeaderTooSmall(usize, usize),
+}
+
+impl From<std::io::Error> for HeaderDeserializeError {
     fn from(err: Error) -> Self {
-        HeaderError::SerializationIoError(err)
+        Self::DeserializationIoError(err)
     }
 }
 
-pub type HeaderResult<T> = Result<T, HeaderError>;
+impl From<std::io::Error> for HeaderSerializeError {
+    fn from(err: Error) -> Self {
+        Self::SerializationIoError(err)
+    }
+}
 
 impl Header {
     pub fn get_file_type(&self) -> Option<MediaType> {
@@ -64,8 +78,11 @@ impl Header {
         }
     }
 
-    pub fn from_bytes<T: AsRef<[u8]>>(data: T) -> HeaderResult<Self> {
+    pub fn from_bytes<T: AsRef<[u8]>>(data: T) -> Result<Self, HeaderDeserializeError> {
         let data = data.as_ref();
+        if data.len() < MIN_HEADER_LEN {
+            Err(HeaderDeserializeError::InputHeaderTooSmall(data.len(), MIN_HEADER_LEN))?;
+        }
 
         let mut hdr = Self::default();
         let mut reader = BufReader::new(data);
@@ -78,14 +95,17 @@ impl Header {
 
         match hdr.get_file_type() {
             Some(_) => Ok(hdr),
-            None => Err(HeaderError::InvalidMagic),
+            None => Err(HeaderDeserializeError::InvalidMagic),
         }
     }
 
-    pub fn to_bytes(&self) -> HeaderResult<Vec<u8>> {
-        let mut data = vec![];
+    pub fn to_bytes(&self) -> Result<Vec<u8>, HeaderSerializeError> {
         let header_len = self.header_len as usize;
-        data.reserve(header_len);
+        if header_len < MIN_HEADER_LEN {
+            Err(HeaderSerializeError::HeaderLenFieldTooSmall(MIN_HEADER_LEN, header_len))?;
+        }
+
+        let mut data = Vec::with_capacity(header_len);
 
         data.write_all(&self.magic)?;
         data.write_u32::<LE>(self.header_len)?;
@@ -94,12 +114,8 @@ impl Header {
         data.write_all(&self.encrypted_test_data)?;
         data.write_all(&self.file_key)?;
 
-        if header_len < data.len() {
-            Err(HeaderError::HeaderLenTooSmall(header_len))
-        } else {
-            data.resize(header_len, 0);
-            Ok(data)
-        }
+        data.resize(header_len, 0);
+        Ok(data)
     }
 }
 

@@ -3,7 +3,7 @@ mod mode3;
 mod mode4;
 
 use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
-use crate::crypto::kugou::{modes, Header, HeaderError};
+use crate::crypto::kugou::{modes, Header, HeaderDeserializeError};
 use thiserror::Error;
 
 pub use mode2::Mode2;
@@ -78,7 +78,7 @@ impl CipherModes {
 #[derive(Error, Debug)]
 pub enum CipherError {
     #[error("Parse header error: {0}")]
-    ParseHeaderFail(HeaderError),
+    ParseHeaderFail(HeaderDeserializeError),
     #[error("Could not generate challenge - is file magic correct?")]
     CouldNotGenerateChallenge,
     #[error("Requested slot key does not exist: {0}")]
@@ -87,10 +87,12 @@ pub enum CipherError {
     UnsupportedCipherVersion(u32),
     #[error("Failed to solve challenge: expected {0:?}, got {1:?}")]
     ChallengeValidationFail(Vec<u8>, Vec<u8>),
+    #[error("Not enough data, expect at least {0} bytes.")]
+    NotEnoughData(usize),
 }
 
-impl From<HeaderError> for CipherError {
-    fn from(error: HeaderError) -> Self {
+impl From<HeaderDeserializeError> for CipherError {
+    fn from(error: HeaderDeserializeError) -> Self {
         CipherError::ParseHeaderFail(error)
     }
 }
