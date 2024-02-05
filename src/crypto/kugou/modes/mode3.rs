@@ -12,7 +12,7 @@ impl Mode3 {
         let slot_key_hash = Self::hash_key(slot_key);
 
         let mut file_key_hash = [0u8; 17];
-        file_key_hash[..16].copy_from_slice(&md5(file_key));
+        file_key_hash[..16].copy_from_slice(&Self::hash_key(file_key));
         file_key_hash[16] = b'k';
 
         Self {

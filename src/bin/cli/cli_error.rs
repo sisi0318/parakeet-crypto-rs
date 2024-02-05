@@ -1,3 +1,4 @@
+use parakeet_crypto::crypto::kugou;
 use parakeet_crypto::crypto::tencent::ekey;
 use parakeet_crypto::crypto::tencent::metadata::TailParseError;
 use thiserror::Error;
@@ -16,7 +17,20 @@ pub enum ParakeetCliError {
     #[error("Unable to extract key from QMC tail")]
     QMCKeyRequired,
 
+    #[error("Unable to serialize header: {0}")]
+    KugouHeaderSerializeError(kugou::HeaderSerializeError),
+    #[error("Unable to deserialize header: {0}")]
+    KugouHeaderDeserializeError(kugou::HeaderDeserializeError),
+    #[error("Cipher error: {0}")]
+    KugouCipherError(kugou::CipherError),
+
     #[error("Unspecified error (placeholder)")]
     #[allow(dead_code)]
     UnspecifiedError,
+}
+
+impl From<kugou::CipherError> for ParakeetCliError {
+    fn from(error: kugou::CipherError) -> Self {
+        Self::KugouCipherError(error)
+    }
 }

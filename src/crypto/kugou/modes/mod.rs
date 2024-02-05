@@ -30,9 +30,7 @@ pub enum CipherModes {
 }
 
 impl CipherModes {
-    fn new<T: AsRef<[u8]>>(header: T) -> Result<Self, CipherError> {
-        let hdr = Header::from_bytes(header)?;
-
+    pub fn new(hdr: &Header) -> Result<Self, CipherError> {
         let challenge = hdr
             .get_challenge()
             .ok_or(CipherError::CouldNotGenerateChallenge)?;
@@ -58,7 +56,7 @@ impl CipherModes {
         Ok(cipher)
     }
 
-    fn decrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
+    pub fn decrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
         match self {
             CipherModes::Mode2(m) => m.decrypt(offset, buffer),
             CipherModes::Mode3(m) => m.decrypt(offset, buffer),
@@ -66,7 +64,7 @@ impl CipherModes {
         }
     }
 
-    fn encrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
+    pub fn encrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
         match self {
             CipherModes::Mode2(m) => m.encrypt(offset, buffer),
             CipherModes::Mode3(m) => m.encrypt(offset, buffer),
