@@ -17,8 +17,6 @@ pub enum ParakeetCliError {
     #[error("Unable to extract key from QMC tail")]
     QMCKeyRequired,
 
-    #[error("Unable to serialize header: {0}")]
-    KugouHeaderSerializeError(kugou::HeaderSerializeError),
     #[error("Unable to deserialize header: {0}")]
     KugouHeaderDeserializeError(kugou::HeaderDeserializeError),
     #[error("Cipher error: {0}")]
