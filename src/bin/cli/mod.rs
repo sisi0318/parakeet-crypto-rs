@@ -1,4 +1,4 @@
-pub(self) mod utils;
+mod utils;
 
 pub(crate) mod commands;
 pub(crate) mod logger;

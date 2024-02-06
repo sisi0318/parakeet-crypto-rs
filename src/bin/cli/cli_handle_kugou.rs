@@ -53,7 +53,7 @@ pub fn cli_handle_kugou(args: KugouOptions) -> Result<(), ParakeetCliError> {
         log.debug(format!("decrypt: offset={}, n={}", offset, n));
         let mut block = &mut buffer[..n];
         cipher.decrypt(offset, &mut block);
-        dst.write_all(&block)
+        dst.write_all(block)
             .map_err(ParakeetCliError::DestinationIoError)?;
         offset += n;
     }

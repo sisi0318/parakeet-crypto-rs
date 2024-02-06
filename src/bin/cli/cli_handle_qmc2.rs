@@ -109,7 +109,7 @@ pub fn cli_handle_qmc2(args: QMC2Options) -> Result<(), ParakeetCliError> {
         }
     };
 
-    log.info(&format!(
+    log.info(format!(
         "key accepted (key_len={}, tail_len={})",
         key.len(),
         tail_len
