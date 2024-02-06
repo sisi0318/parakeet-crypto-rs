@@ -1,8 +1,6 @@
-use cli::{cli_handle_kugou, cli_handle_xmly};
-use cli::{cli_handle_qmc2, commands::ParakeetCLIArgRoot};
-
-use crate::cli::cli_handle_qmc1;
+use cli::commands::ParakeetCLIArgRoot;
 use cli::commands::ParakeetCryptoName as Command;
+use cli::{cli_handle_kugou, cli_handle_qmc1, cli_handle_qmc2, cli_handle_ximalaya_android};
 
 mod cli;
 
@@ -20,7 +18,7 @@ fn main() {
         Command::ModuleQMC1(options) => cli_handle_qmc1(options),
         Command::ModuleQMC2(options) => cli_handle_qmc2(options),
         Command::ModuleKGM(options) => cli_handle_kugou(options),
-        Command::ModuleXMLY(options) => cli_handle_xmly(options),
+        Command::ModuleXimalayaAndroid(options) => cli_handle_ximalaya_android(options),
     };
 
     match cmd_result {
