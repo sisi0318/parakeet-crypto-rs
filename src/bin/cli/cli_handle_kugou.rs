@@ -12,7 +12,7 @@ use crate::cli::utils::{decrypt_file_stream, CliFilePath};
 /// Handle Kugou encryption/decryption.
 #[derive(Debug, Eq, PartialEq, FromArgs)]
 #[argh(subcommand, name = "kugou")]
-pub struct KugouOptions {
+pub struct Options {
     /// input file name/path
     #[argh(option, short = 'i', long = "input")]
     input_file: CliFilePath,
@@ -22,7 +22,7 @@ pub struct KugouOptions {
     output_file: CliFilePath,
 }
 
-pub fn cli_handle_kugou(args: KugouOptions) -> Result<(), ParakeetCliError> {
+pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("Kugou");
 
     let mut src = File::open(args.input_file.path).map_err(ParakeetCliError::SourceIoError)?;

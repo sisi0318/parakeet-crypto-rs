@@ -8,6 +8,7 @@ const INITIAL_SEGMENT_SIZE: usize = 0x80;
 const OTHER_SEGMENT_SIZE: usize = 0x1400;
 const KEY_STREAM_LEN: usize = 0x1FF + OTHER_SEGMENT_SIZE;
 
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct QMCv2RC4 {
     key: Box<[u8]>,
     key_stream: Box<[u8; KEY_STREAM_LEN]>,

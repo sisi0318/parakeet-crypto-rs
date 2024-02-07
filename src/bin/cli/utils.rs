@@ -1,4 +1,5 @@
-use std::io::{Read, Write};
+use std::io::{Error, ErrorKind, Read, Write};
+use std::str::FromStr;
 use std::{fs, path::Path};
 
 use argh::FromArgValue;
@@ -86,7 +87,7 @@ pub fn decrypt_file_stream<C, R, W>(
     writer: &mut W,
     reader: &mut R,
     offset: usize,
-    len: Option<usize>,
+    max_read: Option<usize>,
 ) -> Result<usize, ParakeetCliError>
 where
     C: ByteOffsetDecipher,
@@ -96,7 +97,7 @@ where
     let mut buffer = vec![0u8; DECRYPTION_BUFFER_SIZE];
     let mut dst_write_error = Ok(());
     let bytes_written = cipher
-        .decipher_stream_ex(&mut buffer, offset, reader, len, |block| {
+        .decipher_stream_ex(&mut buffer, offset, reader, max_read, |block| {
             log.debug(format!("decrypt: process {} bytes", block.len()));
             dst_write_error = writer
                 .write_all(block)
@@ -107,4 +108,21 @@ where
         .map_err(ParakeetCliError::SourceIoError)?;
     dst_write_error?;
     Ok(bytes_written)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum QMCKeyType {
+    EKey = 1,
+    Key = 0,
+}
+
+impl FromStr for QMCKeyType {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ekey" => Ok(QMCKeyType::EKey),
+            "key" => Ok(QMCKeyType::Key),
+            _ => Err(Self::Err::new(ErrorKind::InvalidInput, "invalid key type")),
+        }
+    }
 }

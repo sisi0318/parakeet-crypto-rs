@@ -1,5 +1,6 @@
 use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
 
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct QMCv2Map {
     key: [u8; 128],
 }

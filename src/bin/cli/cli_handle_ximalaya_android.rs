@@ -25,7 +25,7 @@ impl FromArgValue for XimalayaType {
 /// Handle x2m/x3m encryption/decryption.
 #[derive(Debug, PartialEq, FromArgs)]
 #[argh(subcommand, name = "ximalaya-android")]
-pub struct XimalayaAndroidOptions {
+pub struct Options {
     /// x2m / x3m key. Accepted values are "x2m" and "x3m".
     #[argh(option, short = 't', long = "type")]
     key_type: XimalayaType,
@@ -39,7 +39,7 @@ pub struct XimalayaAndroidOptions {
     output: CliFilePath,
 }
 
-pub fn cli_handle_ximalaya_android(args: XimalayaAndroidOptions) -> Result<(), ParakeetCliError> {
+pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("Ximalaya (Android)");
 
     let mut src = File::open(args.input.path).map_err(ParakeetCliError::SourceIoError)?;

@@ -1,6 +1,7 @@
 use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
 use crate::crypto::tencent::{QMCv2Map, QMCv2RC4};
 
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum QMCv2 {
     Map(QMCv2Map),
     RC4(QMCv2RC4),

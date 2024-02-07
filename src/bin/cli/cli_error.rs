@@ -1,7 +1,6 @@
-use parakeet_crypto::crypto::kugou;
-use parakeet_crypto::crypto::tencent::ekey;
-use parakeet_crypto::crypto::tencent::metadata::TailParseError;
 use thiserror::Error;
+
+use parakeet_crypto::crypto::{kugou, kuwo, tencent};
 
 #[derive(Debug, Error)]
 pub enum ParakeetCliError {
@@ -11,9 +10,9 @@ pub enum ParakeetCliError {
     DestinationIoError(std::io::Error),
 
     #[error("QMC tail parse error: {0}")]
-    QMCTailParseError(TailParseError),
+    QMCTailParseError(tencent::metadata::TailParseError),
     #[error("QMC EKey decryption failed: {0}")]
-    QMCKeyDecryptionError(ekey::KeyDecryptError),
+    QMCKeyDecryptionError(tencent::ekey::KeyDecryptError),
     #[error("Unable to extract key from QMC tail")]
     QMCKeyRequired,
 
@@ -21,6 +20,11 @@ pub enum ParakeetCliError {
     KugouHeaderDeserializeError(kugou::HeaderDeserializeError),
     #[error("Cipher error: {0}")]
     KugouCipherError(kugou::CipherError),
+
+    #[error("Failed to parse header.")]
+    KuwoHeaderParseError(kuwo::header::HeaderParseError),
+    #[error("Failed to init kuwo cipher: {0}")]
+    KuwoCipherInitError(kuwo::InitCipherError),
 
     #[error("Unspecified error (placeholder)")]
     #[allow(dead_code)]
@@ -30,5 +34,17 @@ pub enum ParakeetCliError {
 impl From<kugou::CipherError> for ParakeetCliError {
     fn from(error: kugou::CipherError) -> Self {
         Self::KugouCipherError(error)
+    }
+}
+
+impl From<kuwo::header::HeaderParseError> for ParakeetCliError {
+    fn from(error: kuwo::header::HeaderParseError) -> Self {
+        Self::KuwoHeaderParseError(error)
+    }
+}
+
+impl From<kuwo::InitCipherError> for ParakeetCliError {
+    fn from(error: kuwo::InitCipherError) -> Self {
+        Self::KuwoCipherInitError(error)
     }
 }

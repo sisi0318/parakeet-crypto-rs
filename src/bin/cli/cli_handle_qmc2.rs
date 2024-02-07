@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
-use std::str::FromStr;
+use std::io::{Read, Seek, SeekFrom};
 
 use argh::FromArgs;
 
@@ -8,34 +7,17 @@ use parakeet_crypto::crypto::tencent;
 use parakeet_crypto::crypto::tencent::{ekey, QMCv2};
 
 use crate::cli::cli_error::ParakeetCliError;
-use crate::cli::utils::decrypt_file_stream;
+use crate::cli::utils::{decrypt_file_stream, QMCKeyType};
 
 use super::{
     logger::CliLogger,
     utils::{CliBinaryContent, CliFilePath},
 };
 
-#[derive(Debug, Eq, PartialEq)]
-enum QMCKeyType {
-    EKey = 1,
-    Key = 0,
-}
-
-impl FromStr for QMCKeyType {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "ekey" => Ok(QMCKeyType::EKey),
-            "key" => Ok(QMCKeyType::Key),
-            _ => Err(Self::Err::new(ErrorKind::InvalidInput, "invalid key type")),
-        }
-    }
-}
-
 /// Handle QMCv2 File.
 #[derive(Debug, Eq, PartialEq, FromArgs)]
 #[argh(subcommand, name = "qmc2")]
-pub struct QMC2Options {
+pub struct Options {
     /// encryption key
     #[argh(option, short = 'k')]
     key: Option<CliBinaryContent>,
@@ -62,7 +44,7 @@ pub struct QMC2Options {
 
 const TAIL_BUF_LEN: usize = 1024;
 
-pub fn cli_handle_qmc2(args: QMC2Options) -> Result<(), ParakeetCliError> {
+pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("QMCv2");
 
     let mut src = File::open(args.input_file.path).map_err(ParakeetCliError::SourceIoError)?;

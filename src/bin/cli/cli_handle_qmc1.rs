@@ -11,7 +11,7 @@ use crate::cli::{logger::CliLogger, utils::CliFilePath};
 /// Handle QMC1 File.
 #[derive(Debug, Eq, PartialEq, FromArgs)]
 #[argh(subcommand, name = "qmc1")]
-pub struct QMC1Options {
+pub struct Options {
     /// input file name/path
     #[argh(option, short = 'i', long = "input")]
     input_file: CliFilePath,
@@ -21,7 +21,7 @@ pub struct QMC1Options {
     output_file: CliFilePath,
 }
 
-pub fn cli_handle_qmc1(args: QMC1Options) -> Result<(), ParakeetCliError> {
+pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("QMCv1");
 
     let mut src = File::open(args.input_file.path).map_err(ParakeetCliError::SourceIoError)?;
