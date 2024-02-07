@@ -81,7 +81,10 @@ impl Header {
     pub fn from_bytes<T: AsRef<[u8]>>(data: T) -> Result<Self, HeaderDeserializeError> {
         let data = data.as_ref();
         if data.len() < MIN_HEADER_LEN {
-            Err(HeaderDeserializeError::InputHeaderTooSmall(data.len(), MIN_HEADER_LEN))?;
+            Err(HeaderDeserializeError::InputHeaderTooSmall(
+                data.len(),
+                MIN_HEADER_LEN,
+            ))?;
         }
 
         let mut hdr = Self::default();
@@ -102,7 +105,10 @@ impl Header {
     pub fn to_bytes(&self) -> Result<Vec<u8>, HeaderSerializeError> {
         let header_len = self.header_len as usize;
         if header_len < MIN_HEADER_LEN {
-            Err(HeaderSerializeError::HeaderLenFieldTooSmall(MIN_HEADER_LEN, header_len))?;
+            Err(HeaderSerializeError::HeaderLenFieldTooSmall(
+                MIN_HEADER_LEN,
+                header_len,
+            ))?;
         }
 
         let mut data = Vec::with_capacity(header_len);
@@ -138,7 +144,7 @@ mod tests {
     #[test]
     fn test_conversion() {
         let original_hdr = Header {
-            magic: [1; 16],
+            magic: KGM_HEADER_MAGIC,
             header_len: 1024,
             crypto_version: 2,
             key_slot: 3,
