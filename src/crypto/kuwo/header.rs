@@ -76,9 +76,12 @@ impl KuwoHeader {
     ///
     /// ```
     /// use parakeet_crypto::crypto::kuwo::header::KuwoHeader;
-    /// let hdr = KuwoHeader::from_bytes(include_bytes!("/path/to/file.mflac")).unwrap();
-    /// let quality_id = hdr.get_quality_id(); // "20900kmflac"
-    /// println!("kwm(quality_id={})", quality_id); // Output: kwm(quality_id=20900)
+    ///
+    /// let mut hdr = KuwoHeader::default();
+    /// hdr.format_name = *b"20900kmflac\0";
+    /// assert_eq!(hdr.get_quality_id(), 20900);
+    /// hdr.format_name = *b"2000FLAC\0\0\0\0";
+    /// assert_eq!(hdr.get_quality_id(), 2000);
     /// ```
     pub fn get_quality_id(&self) -> u32 {
         self.format_name
