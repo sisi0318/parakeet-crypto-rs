@@ -22,9 +22,9 @@ pub fn parakeet_main() {
     }
 
     let cmd_result = match options.command {
-        Command::ModuleQMC1(options) => cli_handle_qmc1::handle(options),
-        Command::ModuleQMC2(options) => cli_handle_qmc2::handle(options),
-        Command::ModuleKGM(options) => cli_handle_kugou::handle(options),
+        Command::ModuleTencentQMCv1(options) => cli_handle_qmc1::handle(options),
+        Command::ModuleTencentQMCv2(options) => cli_handle_qmc2::handle(options),
+        Command::ModuleKugou(options) => cli_handle_kugou::handle(options),
         Command::ModuleKuwo(options) => cli_handle_kuwo::handle(options),
         Command::ModuleXimalayaAndroid(options) => cli_handle_ximalaya_android::handle(options),
     };
