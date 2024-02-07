@@ -1,4 +1,4 @@
-use crate::cli::commands::ParakeetCryptoName as Command;
+use crate::cli::commands::Command;
 
 mod commands;
 mod logger;
@@ -12,7 +12,7 @@ mod cli_handle_qmc2;
 mod cli_handle_ximalaya_android;
 
 pub fn parakeet_main() {
-    let options: commands::ParakeetCLIArgRoot = argh::from_env();
+    let options: commands::CliOptions = argh::from_env();
     let log = logger::CliLogger::new("main");
 
     #[cfg(debug_assertions)]
@@ -22,11 +22,11 @@ pub fn parakeet_main() {
     }
 
     let cmd_result = match options.command {
-        Command::ModuleTencentQMCv1(options) => cli_handle_qmc1::handle(options),
-        Command::ModuleTencentQMCv2(options) => cli_handle_qmc2::handle(options),
-        Command::ModuleKugou(options) => cli_handle_kugou::handle(options),
-        Command::ModuleKuwo(options) => cli_handle_kuwo::handle(options),
-        Command::ModuleXimalayaAndroid(options) => cli_handle_ximalaya_android::handle(options),
+        Command::TencentQMCv1(options) => cli_handle_qmc1::handle(options),
+        Command::TencentQMCv2(options) => cli_handle_qmc2::handle(options),
+        Command::Kugou(options) => cli_handle_kugou::handle(options),
+        Command::Kuwo(options) => cli_handle_kuwo::handle(options),
+        Command::XimalayaAndroid(options) => cli_handle_ximalaya_android::handle(options),
     };
 
     match cmd_result {
