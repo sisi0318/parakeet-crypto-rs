@@ -1,5 +1,7 @@
 use std::cmp::min;
 
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
+
 use super::rc4::RC4;
 
 const INITIAL_SEGMENT_SIZE: usize = 0x80;
@@ -75,10 +77,18 @@ impl QMCv2RC4 {
             *item ^= key;
         }
     }
+}
 
-    pub fn decrypt(&self, offset: usize, buffer: &mut [u8]) {
+impl ByteOffsetDecipher for QMCv2RC4 {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        let mut buffer = [datum; 1];
+        self.decipher_buffer(offset, &mut buffer);
+        buffer[0]
+    }
+
+    fn decipher_buffer<T: AsMut<[u8]> + ?Sized>(&self, offset: usize, buffer: &mut T) {
         let mut offset = offset;
-        let mut buffer = buffer;
+        let mut buffer = buffer.as_mut();
 
         if offset < INITIAL_SEGMENT_SIZE {
             let len = min(buffer.len(), INITIAL_SEGMENT_SIZE - offset);
@@ -103,8 +113,14 @@ impl QMCv2RC4 {
             offset += len;
         }
     }
+}
 
-    pub fn encrypt(&self, offset: usize, buffer: &mut [u8]) {
-        self.decrypt(offset, buffer)
+impl ByteOffsetEncipher for QMCv2RC4 {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        self.decipher_byte(offset, datum)
+    }
+
+    fn encipher_buffer<T: AsMut<[u8]> + ?Sized>(&self, offset: usize, buffer: &mut T) {
+        self.decipher_buffer(offset, buffer)
     }
 }

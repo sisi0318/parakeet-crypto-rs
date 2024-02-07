@@ -1,12 +1,11 @@
 use std::fs::File;
-use std::io::{Read, Write};
 
 use argh::FromArgs;
 
-use parakeet_crypto::crypto::tencent::decrypt_qmc1;
+use parakeet_crypto::crypto::tencent::QMCv1;
 
 use crate::cli::cli_error::ParakeetCliError;
-use crate::cli::utils::DECRYPTION_BUFFER_SIZE;
+use crate::cli::utils::decrypt_file_stream;
 use crate::cli::{logger::CliLogger, utils::CliFilePath};
 
 /// Handle QMC1 File.
@@ -29,22 +28,8 @@ pub fn cli_handle_qmc1(args: QMC1Options) -> Result<(), ParakeetCliError> {
     let mut dst =
         File::create(args.output_file.path).map_err(ParakeetCliError::DestinationIoError)?;
 
-    let mut buffer = vec![0u8; DECRYPTION_BUFFER_SIZE];
-    let mut offset = 0usize;
-    loop {
-        let n = src
-            .read(&mut buffer)
-            .map_err(ParakeetCliError::SourceIoError)?;
-        if n == 0 {
-            break;
-        }
-        log.debug(format!("decrypt: offset={}, n={}", offset, n));
-        decrypt_qmc1(offset, &mut buffer[..n]);
-        dst.write_all(&buffer[..n])
-            .map_err(ParakeetCliError::DestinationIoError)?;
-        offset += n;
-    }
+    let bytes_written = decrypt_file_stream(&log, QMCv1, &mut dst, &mut src, 0, None)?;
+    log.info(format!("decrypt: done, written {} bytes", bytes_written));
 
-    log.info("Decryption OK.");
     Ok(())
 }

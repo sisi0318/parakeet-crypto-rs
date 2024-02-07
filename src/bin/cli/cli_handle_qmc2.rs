@@ -1,6 +1,5 @@
-use std::cmp::min;
 use std::fs::File;
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
 use std::str::FromStr;
 
 use argh::FromArgs;
@@ -9,7 +8,7 @@ use parakeet_crypto::crypto::tencent;
 use parakeet_crypto::crypto::tencent::{ekey, QMCv2};
 
 use crate::cli::cli_error::ParakeetCliError;
-use crate::cli::utils::DECRYPTION_BUFFER_SIZE;
+use crate::cli::utils::decrypt_file_stream;
 
 use super::{
     logger::CliLogger,
@@ -115,28 +114,10 @@ pub fn cli_handle_qmc2(args: QMC2Options) -> Result<(), ParakeetCliError> {
         tail_len
     ));
 
-    let qmc2 = QMCv2::from_key(key);
-    let mut buffer = vec![0u8; DECRYPTION_BUFFER_SIZE];
-    let mut offset: usize = 0;
+    let cipher = QMCv2::from_key(key);
     let file_size = file_size as usize;
-    let mut bytes_to_decrypt = file_size - tail_len;
-    log.info("begin decryption...");
-    while bytes_to_decrypt > 0 {
-        let block_len = min(buffer.len(), bytes_to_decrypt);
-        log.debug(format!(
-            "decrypt: offset={}, bytes_to_decrypt={}, block_len={}, file_size={}",
-            offset, bytes_to_decrypt, block_len, file_size
-        ));
+    let bytes_written = decrypt_file_stream(&log, cipher, &mut dst, &mut src, 0, Some(file_size))?;
+    log.info(format!("decrypt: done, written {} bytes", bytes_written));
 
-        let mut block = &mut buffer[..block_len];
-        src.read_exact(block)
-            .map_err(ParakeetCliError::SourceIoError)?;
-        qmc2.decrypt(offset, &mut block);
-        dst.write_all(block)
-            .map_err(ParakeetCliError::DestinationIoError)?;
-        offset += block_len;
-        bytes_to_decrypt -= block_len;
-    }
-    log.info("Decryption OK.");
     Ok(())
 }

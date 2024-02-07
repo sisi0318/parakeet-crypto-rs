@@ -1,6 +1,6 @@
 use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
 
-use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
 use crate::utils::md5;
 
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
@@ -80,8 +80,8 @@ impl Mode4 {
     }
 }
 
-impl ByteOffsetCipher for Mode4 {
-    fn encrypt_byte(&self, offset: usize, datum: u8) -> u8 {
+impl ByteOffsetEncipher for Mode4 {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
         let (slot_key, file_key, offset_checksum) = self.get_key(offset);
 
         let mut datum = datum;
@@ -94,7 +94,7 @@ impl ByteOffsetCipher for Mode4 {
 }
 
 impl ByteOffsetDecipher for Mode4 {
-    fn decrypt_byte(&self, offset: usize, datum: u8) -> u8 {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
         let (slot_key, file_key, offset_checksum) = self.get_key(offset);
 
         let mut datum = datum;

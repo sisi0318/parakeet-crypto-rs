@@ -1,11 +1,13 @@
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom};
+
+use argh::FromArgs;
+
+use parakeet_crypto::crypto::kugou;
 
 use crate::cli::cli_error::ParakeetCliError;
 use crate::cli::logger::CliLogger;
-use crate::cli::utils::{CliFilePath, DECRYPTION_BUFFER_SIZE};
-use argh::FromArgs;
-use parakeet_crypto::crypto::kugou;
+use crate::cli::utils::{decrypt_file_stream, CliFilePath};
 
 /// Handle Kugou encryption/decryption.
 #[derive(Debug, Eq, PartialEq, FromArgs)]
@@ -41,23 +43,8 @@ pub fn cli_handle_kugou(args: KugouOptions) -> Result<(), ParakeetCliError> {
     src.seek(SeekFrom::Start(hdr.header_len.into()))
         .map_err(ParakeetCliError::SourceIoError)?;
 
-    let mut offset = 0usize;
-    let mut buffer = vec![0u8; DECRYPTION_BUFFER_SIZE];
-    loop {
-        let n = src
-            .read(&mut buffer)
-            .map_err(ParakeetCliError::SourceIoError)?;
-        if n == 0 {
-            break;
-        }
-        log.debug(format!("decrypt: offset={}, n={}", offset, n));
-        let mut block = &mut buffer[..n];
-        cipher.decrypt(offset, &mut block);
-        dst.write_all(block)
-            .map_err(ParakeetCliError::DestinationIoError)?;
-        offset += n;
-    }
-    log.info("Decryption OK.");
+    let bytes_written = decrypt_file_stream(&log, cipher, &mut dst, &mut src, 0, None)?;
+    log.info(format!("decrypt: done, written {} bytes", bytes_written));
 
     Ok(())
 }

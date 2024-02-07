@@ -1,17 +1,18 @@
-mod mode2;
-mod mode3;
-mod mode4;
+use std::collections::HashMap;
 
-use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
-use crate::crypto::kugou::{modes, Header, HeaderDeserializeError};
+use lazy_static::lazy_static;
 use thiserror::Error;
 
 pub use mode2::Mode2;
 pub use mode3::Mode3;
 pub use mode4::Mode4;
 
-use lazy_static::lazy_static;
-use std::collections::HashMap;
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
+use crate::crypto::kugou::{modes, Header, HeaderDeserializeError};
+
+mod mode2;
+mod mode3;
+mod mode4;
 
 lazy_static! {
     /// Slot keys corresponds to the keys specified in the header.
@@ -46,7 +47,7 @@ impl CipherModes {
         };
 
         let mut decrypted = hdr.encrypted_test_data;
-        cipher.decrypt(0, &mut decrypted);
+        cipher.decipher_buffer(0, &mut decrypted);
         if challenge != decrypted {
             let challenge = challenge.into();
             let decrypted = decrypted.into();
@@ -55,20 +56,40 @@ impl CipherModes {
 
         Ok(cipher)
     }
+}
 
-    pub fn decrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
+impl ByteOffsetDecipher for CipherModes {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
         match self {
-            CipherModes::Mode2(m) => m.decrypt(offset, buffer),
-            CipherModes::Mode3(m) => m.decrypt(offset, buffer),
-            CipherModes::Mode4(m) => m.decrypt(offset, buffer),
+            CipherModes::Mode2(m) => m.decipher_byte(offset, datum),
+            CipherModes::Mode3(m) => m.decipher_byte(offset, datum),
+            CipherModes::Mode4(m) => m.decipher_byte(offset, datum),
         }
     }
 
-    pub fn encrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
+    fn decipher_buffer<T: AsMut<[u8]> + ?Sized>(&self, offset: usize, buffer: &mut T) {
         match self {
-            CipherModes::Mode2(m) => m.encrypt(offset, buffer),
-            CipherModes::Mode3(m) => m.encrypt(offset, buffer),
-            CipherModes::Mode4(m) => m.encrypt(offset, buffer),
+            CipherModes::Mode2(m) => m.decipher_buffer(offset, buffer),
+            CipherModes::Mode3(m) => m.decipher_buffer(offset, buffer),
+            CipherModes::Mode4(m) => m.decipher_buffer(offset, buffer),
+        }
+    }
+}
+
+impl ByteOffsetEncipher for CipherModes {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        match self {
+            CipherModes::Mode2(m) => m.encipher_byte(offset, datum),
+            CipherModes::Mode3(m) => m.encipher_byte(offset, datum),
+            CipherModes::Mode4(m) => m.encipher_byte(offset, datum),
+        }
+    }
+
+    fn encipher_buffer<T: AsMut<[u8]> + ?Sized>(&self, offset: usize, buffer: &mut T) {
+        match self {
+            CipherModes::Mode2(m) => m.encipher_buffer(offset, buffer),
+            CipherModes::Mode3(m) => m.encipher_buffer(offset, buffer),
+            CipherModes::Mode4(m) => m.encipher_buffer(offset, buffer),
         }
     }
 }

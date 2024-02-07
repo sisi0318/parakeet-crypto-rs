@@ -1,4 +1,4 @@
-use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
 use crate::utils::md5;
 
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
@@ -58,8 +58,8 @@ mod tests {
     }
 }
 
-impl ByteOffsetCipher for Mode3 {
-    fn encrypt_byte(&self, offset: usize, datum: u8) -> u8 {
+impl ByteOffsetEncipher for Mode3 {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
         let offset_checksum = Self::calc_offset_checksum(offset as u32);
         let slot_key = self.slot_key_hash[offset % self.slot_key_hash.len()];
         let file_key = self.file_key_hash[offset % self.file_key_hash.len()];
@@ -74,7 +74,7 @@ impl ByteOffsetCipher for Mode3 {
 }
 
 impl ByteOffsetDecipher for Mode3 {
-    fn decrypt_byte(&self, offset: usize, datum: u8) -> u8 {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
         let offset_checksum = Self::calc_offset_checksum(offset as u32);
         let slot_key = self.slot_key_hash[offset % self.slot_key_hash.len()];
         let file_key = self.file_key_hash[offset % self.file_key_hash.len()];

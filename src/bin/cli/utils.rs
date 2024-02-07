@@ -1,7 +1,13 @@
+use std::io::{Read, Write};
 use std::{fs, path::Path};
 
 use argh::FromArgValue;
 use base64::{engine::general_purpose::STANDARD as Base64, Engine as _};
+
+use parakeet_crypto::crypto::byte_offset_cipher::ByteOffsetDecipher;
+
+use crate::cli::cli_error::ParakeetCliError;
+use crate::cli::logger::CliLogger;
 
 pub const DECRYPTION_BUFFER_SIZE: usize = 2 * 1024 * 1024;
 
@@ -72,4 +78,33 @@ impl FromArgValue for CliFilePath {
             path: Box::from(Path::new(value)),
         })
     }
+}
+
+pub fn decrypt_file_stream<C, R, W>(
+    log: &CliLogger,
+    cipher: C,
+    writer: &mut W,
+    reader: &mut R,
+    offset: usize,
+    len: Option<usize>,
+) -> Result<usize, ParakeetCliError>
+where
+    C: ByteOffsetDecipher,
+    R: Read + ?Sized,
+    W: Write + ?Sized,
+{
+    let mut buffer = vec![0u8; DECRYPTION_BUFFER_SIZE];
+    let mut dst_write_error = Ok(());
+    let bytes_written = cipher
+        .decipher_stream_ex(&mut buffer, offset, reader, len, |block| {
+            log.debug(format!("decrypt: process {} bytes", block.len()));
+            dst_write_error = writer
+                .write_all(block)
+                .map_err(ParakeetCliError::DestinationIoError);
+
+            dst_write_error.as_ref().into()
+        })
+        .map_err(ParakeetCliError::SourceIoError)?;
+    dst_write_error?;
+    Ok(bytes_written)
 }

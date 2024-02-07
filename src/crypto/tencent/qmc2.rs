@@ -1,3 +1,4 @@
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
 use crate::crypto::tencent::{QMCv2Map, QMCv2RC4};
 
 pub enum QMCv2 {
@@ -18,8 +19,34 @@ impl QMCv2 {
 
     pub fn decrypt<T: AsMut<[u8]>>(&self, offset: usize, buffer: &mut T) {
         match self {
-            Self::Map(d) => d.decrypt(offset, buffer.as_mut()),
-            Self::RC4(d) => d.decrypt(offset, buffer.as_mut()),
+            Self::Map(d) => d.decipher_buffer(offset, buffer.as_mut()),
+            Self::RC4(d) => d.decipher_buffer(offset, buffer.as_mut()),
         }
+    }
+}
+
+impl ByteOffsetDecipher for QMCv2 {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        match self {
+            Self::Map(d) => d.decipher_byte(offset, datum),
+            Self::RC4(d) => d.decipher_byte(offset, datum),
+        }
+    }
+
+    fn decipher_buffer<T: AsMut<[u8]> + ?Sized>(&self, offset: usize, buffer: &mut T) {
+        match self {
+            Self::Map(d) => d.decipher_buffer(offset, buffer),
+            Self::RC4(d) => d.decipher_buffer(offset, buffer),
+        }
+    }
+}
+
+impl ByteOffsetEncipher for QMCv2 {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        self.decipher_byte(offset, datum)
+    }
+
+    fn encipher_buffer<T: AsMut<[u8]> + ?Sized>(&self, offset: usize, buffer: &mut T) {
+        self.decipher_buffer(offset, buffer)
     }
 }

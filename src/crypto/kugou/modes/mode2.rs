@@ -1,4 +1,4 @@
-use crate::crypto::byte_offset_cipher::{ByteOffsetCipher, ByteOffsetDecipher};
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
 
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Mode2 {
@@ -13,8 +13,8 @@ impl Mode2 {
     }
 }
 
-impl ByteOffsetCipher for Mode2 {
-    fn encrypt_byte(&self, offset: usize, datum: u8) -> u8 {
+impl ByteOffsetEncipher for Mode2 {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
         let key = self.slot_key[offset % self.slot_key.len()];
         let mut datum = datum;
         datum ^= key;
@@ -24,7 +24,7 @@ impl ByteOffsetCipher for Mode2 {
 }
 
 impl ByteOffsetDecipher for Mode2 {
-    fn decrypt_byte(&self, offset: usize, datum: u8) -> u8 {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
         let key = self.slot_key[offset % self.slot_key.len()];
         let mut datum = datum;
         datum ^= datum << 4;

@@ -1,3 +1,5 @@
+use crate::crypto::byte_offset_cipher::{ByteOffsetDecipher, ByteOffsetEncipher};
+
 pub struct QMCv2Map {
     key: [u8; 128],
 }
@@ -28,16 +30,16 @@ impl QMCv2Map {
         let key = qmc2_key_to_qmc1(file_key);
         Self { key }
     }
+}
 
-    pub fn decrypt(&self, offset: usize, buffer: &mut [u8]) {
-        let mut i = offset;
-        for item in buffer {
-            *item ^= super::map_l(&self.key, i);
-            i += 1;
-        }
+impl ByteOffsetDecipher for QMCv2Map {
+    fn decipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        datum ^ super::map_l(&self.key, offset)
     }
+}
 
-    pub fn encrypt(&self, offset: usize, buffer: &mut [u8]) {
-        self.decrypt(offset, buffer)
+impl ByteOffsetEncipher for QMCv2Map {
+    fn encipher_byte(&self, offset: usize, datum: u8) -> u8 {
+        self.decipher_byte(offset, datum)
     }
 }
