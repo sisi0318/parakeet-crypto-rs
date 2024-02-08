@@ -4,6 +4,6 @@ extern crate serde_derive;
 
 pub mod interfaces;
 
-mod utils;
+pub mod utils;
 
 pub mod crypto;
