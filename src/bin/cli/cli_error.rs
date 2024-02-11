@@ -8,6 +8,8 @@ pub enum ParakeetCliError {
     SourceIoError(std::io::Error),
     #[error("Destination io error: {0}")]
     DestinationIoError(std::io::Error),
+    #[error("Other I/O Error '{0}': {1}")]
+    OtherIoError(std::path::PathBuf, std::io::Error),
 
     #[error("QMC tail parse error: {0}")]
     QMCTailParseError(tencent::metadata::TailParseError),
@@ -15,6 +17,9 @@ pub enum ParakeetCliError {
     QMCKeyDecryptionError(tencent::ekey::KeyDecryptError),
     #[error("Unable to extract key from QMC tail")]
     QMCKeyRequired,
+
+    #[error("Unable to parse mmkv file")]
+    MMKVParseError(mmkv_parser::Error),
 
     #[error("Unable to deserialize header: {0}")]
     KugouHeaderDeserializeError(kugou::HeaderDeserializeError),

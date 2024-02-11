@@ -1,9 +1,13 @@
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
+use std::path::PathBuf;
 
 use argh::FromArgs;
+use mmkv_parser::mmkv::ParseControl;
+
 use parakeet_crypto::crypto::kuwo::{header, Kuwo};
 use parakeet_crypto::crypto::tencent::ekey;
+use parakeet_crypto::utils::validate::is_digits_str;
 
 use crate::cli::cli_error::ParakeetCliError;
 use crate::cli::utils::{decrypt_file_stream, QMCKeyType};
@@ -26,6 +30,10 @@ pub struct Options {
     /// kwm_v2: encryption key type, default to "ekey".
     #[argh(option, short = 't', default = "QMCKeyType::EKey")]
     key_type: QMCKeyType,
+
+    /// path to the mmkv store
+    #[argh(option, short = 'm', long = "mmkv")]
+    mmkv_path: Option<PathBuf>,
 
     /// input file name/path
     #[argh(option, short = 'i', long = "input")]
@@ -58,15 +66,58 @@ pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
         hdr.get_quality_id()
     ));
 
-    let key = args
-        .key
-        .map(|user_key| match args.key_type {
-            QMCKeyType::Key => Ok(user_key.content),
-            QMCKeyType::EKey => {
-                ekey::decrypt(user_key.content).map_err(ParakeetCliError::QMCKeyDecryptionError)
+    // Key from cli has priority
+    let key = match args.key {
+        Some(user_key) => match args.key_type {
+            QMCKeyType::Key => Some(user_key.content),
+            QMCKeyType::EKey => Some(
+                ekey::decrypt(user_key.content).map_err(ParakeetCliError::QMCKeyDecryptionError)?,
+            ),
+        },
+        None => None,
+    };
+
+    // read from mmkv store, if not specified via cli directly
+    let key = match key {
+        Some(key) => Some(key),
+        None => match args.mmkv_path {
+            None => None,
+            Some(mmkv_path) => {
+                let mut mmkv_data = Vec::with_capacity(4096);
+                File::open(&mmkv_path)
+                    .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?
+                    .read_to_end(&mut mmkv_data)
+                    .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?;
+                let needle = format!("sec_ekey#{}-{}", hdr.resource_id, hdr.get_quality_id());
+                log.debug(format!("ekey search needle: {}", needle));
+                let mut result = None;
+                mmkv_parser::mmkv::parse_callback(&mmkv_data, |k, v| {
+                    if let Some(suffix) = k.strip_prefix(needle.as_bytes()) {
+                        if suffix.is_empty() || !is_digits_str(&suffix[..1]) {
+                            log.debug(format!("pick ekey from: {}", String::from_utf8_lossy(k)));
+                            result = Some(v);
+                        } else {
+                            log.debug(format!("ignore [{}]", String::from_utf8_lossy(k)));
+                        }
+                    }
+                    ParseControl::Continue
+                })
+                .map_err(ParakeetCliError::MMKVParseError)?;
+
+                match result {
+                    None => None,
+                    Some(mmkv_ekey) => {
+                        let (_, mmkv_ekey) = mmkv_parser::mmkv::read_container(mmkv_ekey)
+                            .map_err(ParakeetCliError::MMKVParseError)?;
+                        Some(
+                            ekey::decrypt(mmkv_ekey)
+                                .map_err(ParakeetCliError::QMCKeyDecryptionError)?,
+                        )
+                    }
+                }
             }
-        })
-        .transpose()?;
+        },
+    };
 
     #[cfg(debug_assertions)]
     if let Some(key_inner) = &key {
