@@ -44,6 +44,44 @@ pub struct Options {
     output_file: CliFilePath,
 }
 
+fn find_key(
+    log: &CliLogger,
+    hdr: &header::KuwoHeader,
+    mmkv_path: &PathBuf,
+) -> Result<Option<Box<[u8]>>, ParakeetCliError> {
+    let mut mmkv_data = Vec::with_capacity(4096);
+    File::open(&mmkv_path)
+        .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?
+        .read_to_end(&mut mmkv_data)
+        .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?;
+    let needle = format!("sec_ekey#{}-{}", hdr.resource_id, hdr.get_quality_id());
+    log.debug(format!("ekey search needle: {}", needle));
+    let mut result = None;
+    mmkv_parser::mmkv::parse_callback(&mmkv_data, |k, v| {
+        if let Some(suffix) = k.strip_prefix(needle.as_bytes()) {
+            if suffix.is_empty() || !is_digits_str(&suffix[..1]) {
+                log.debug(format!("pick ekey from: {}", String::from_utf8_lossy(k)));
+                result = Some(v);
+            } else {
+                log.debug(format!("ignore [{}]", String::from_utf8_lossy(k)));
+            }
+        }
+        ParseControl::Continue
+    })
+    .map_err(ParakeetCliError::MMKVParseError)?;
+
+    let result = match result {
+        None => None,
+        Some(mmkv_ekey) => {
+            let (_, mmkv_ekey) = mmkv_parser::mmkv::read_container(mmkv_ekey)
+                .map_err(ParakeetCliError::MMKVParseError)?;
+            Some(ekey::decrypt(mmkv_ekey).map_err(ParakeetCliError::QMCKeyDecryptionError)?)
+        }
+    };
+
+    Ok(result)
+}
+
 pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
     let log = CliLogger::new("KWM");
 
@@ -68,54 +106,19 @@ pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
 
     // Key from cli has priority
     let key = match args.key {
+        // we got a key, let's use it.
         Some(user_key) => match args.key_type {
             QMCKeyType::Key => Some(user_key.content),
             QMCKeyType::EKey => Some(
                 ekey::decrypt(user_key.content).map_err(ParakeetCliError::QMCKeyDecryptionError)?,
             ),
         },
-        None => None,
-    };
-
-    // read from mmkv store, if not specified via cli directly
-    let key = match key {
-        Some(key) => Some(key),
+        // no key? try mmkv
         None => match args.mmkv_path {
+            // no mmkv? ignore
             None => None,
-            Some(mmkv_path) => {
-                let mut mmkv_data = Vec::with_capacity(4096);
-                File::open(&mmkv_path)
-                    .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?
-                    .read_to_end(&mut mmkv_data)
-                    .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?;
-                let needle = format!("sec_ekey#{}-{}", hdr.resource_id, hdr.get_quality_id());
-                log.debug(format!("ekey search needle: {}", needle));
-                let mut result = None;
-                mmkv_parser::mmkv::parse_callback(&mmkv_data, |k, v| {
-                    if let Some(suffix) = k.strip_prefix(needle.as_bytes()) {
-                        if suffix.is_empty() || !is_digits_str(&suffix[..1]) {
-                            log.debug(format!("pick ekey from: {}", String::from_utf8_lossy(k)));
-                            result = Some(v);
-                        } else {
-                            log.debug(format!("ignore [{}]", String::from_utf8_lossy(k)));
-                        }
-                    }
-                    ParseControl::Continue
-                })
-                .map_err(ParakeetCliError::MMKVParseError)?;
-
-                match result {
-                    None => None,
-                    Some(mmkv_ekey) => {
-                        let (_, mmkv_ekey) = mmkv_parser::mmkv::read_container(mmkv_ekey)
-                            .map_err(ParakeetCliError::MMKVParseError)?;
-                        Some(
-                            ekey::decrypt(mmkv_ekey)
-                                .map_err(ParakeetCliError::QMCKeyDecryptionError)?,
-                        )
-                    }
-                }
-            }
+            // try to find the ekey and get its decrypted form
+            Some(mmkv_path) => find_key(&log, &hdr, &mmkv_path)?,
         },
     };
 
