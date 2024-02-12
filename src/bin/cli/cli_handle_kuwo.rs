@@ -50,18 +50,23 @@ fn find_key(
     mmkv_path: &PathBuf,
 ) -> Result<Option<Box<[u8]>>, ParakeetCliError> {
     let mut mmkv_data = Vec::with_capacity(4096);
-    File::open(&mmkv_path)
+
+    log.debug("read mmkv file to memory...");
+    File::open(mmkv_path)
         .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?
         .read_to_end(&mut mmkv_data)
         .map_err(|err| ParakeetCliError::OtherIoError(mmkv_path.clone(), err))?;
+
     let needle = format!("sec_ekey#{}-{}", hdr.resource_id, hdr.get_quality_id());
     log.debug(format!("ekey search needle: {}", needle));
-    let mut result = None;
+
+    let mut ekey = None;
     mmkv_parser::mmkv::parse_callback(&mmkv_data, |k, v| {
+        // It should either key by prefix exactly, or followed by a non-digit character.
         if let Some(suffix) = k.strip_prefix(needle.as_bytes()) {
             if suffix.is_empty() || !is_digits_str(&suffix[..1]) {
                 log.debug(format!("pick ekey from: {}", String::from_utf8_lossy(k)));
-                result = Some(v);
+                ekey = Some(v);
             } else {
                 log.debug(format!("ignore [{}]", String::from_utf8_lossy(k)));
             }
@@ -70,8 +75,11 @@ fn find_key(
     })
     .map_err(ParakeetCliError::MMKVParseError)?;
 
-    let result = match result {
+    let key = match ekey {
+        // No ekey found
         None => None,
+
+        // found ekey, decrypt it.
         Some(mmkv_ekey) => {
             let (_, mmkv_ekey) = mmkv_parser::mmkv::read_container(mmkv_ekey)
                 .map_err(ParakeetCliError::MMKVParseError)?;
@@ -79,7 +87,7 @@ fn find_key(
         }
     };
 
-    Ok(result)
+    Ok(key)
 }
 
 pub fn handle(args: Options) -> Result<(), ParakeetCliError> {
