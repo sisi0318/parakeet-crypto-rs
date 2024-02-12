@@ -6,11 +6,19 @@
 
 - QQ 音乐
   - QMCv1 (static_map)
+    - `qmcflac` / `qmc3` 等
   - QMCv2 (map / rc4)
+    - `mflac` / `mgg` 等 [^qm_mflac]
 - 酷狗音乐
-  - KGM / VPR
+  - `kgm` / `vpr`
+- 酷我音乐
+  - `kwm` / AI 升频 `mflac` [^kuwo_mflac]
 - 喜马拉雅
-  - X2M / X3M
+  - 安卓客户端 `x2m` / `x3m` [^x3m]
+
+[^qm_mflac]: 安卓需要提取密钥数据库；PC 端需要提供密钥数据库以及解密密钥。
+[^kuwo_mflac]: 需要在有特权的安卓设备提取密钥文件: `/data/data/cn.kuwo.player/files/mmkv/cn.kuwo.player.mmkv.defaultconfig`
+[^x3m]: 文件名为“乱码”，获取对应名称则需要手动提取数据库进行处理。
 
 ## 命令行调用
 
@@ -37,4 +45,5 @@
 > We are not liable for any damage caused by the use of this software.
 
 [project_parakeet]: https://github.com/jixunmoe/parakeet
+
 [wiki_cli]: https://github.com/parakeet-rs/parakeet-crypto-rs/wiki/%E5%91%BD%E4%BB%A4%E8%A1%8C%E8%B0%83%E7%94%A8
