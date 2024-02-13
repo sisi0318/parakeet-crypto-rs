@@ -1,4 +1,4 @@
-use crate::crypto::ximalaya::keys::{ContentKey, ScrambleTable, SCRAMBLED_HEADER_LEN};
+use crate::crypto::ximalaya_android::keys::{ContentKey, ScrambleTable, SCRAMBLED_HEADER_LEN};
 
 pub fn decrypt_header(
     header: &[u8; SCRAMBLED_HEADER_LEN],
