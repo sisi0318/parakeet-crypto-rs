@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use parakeet_crypto::crypto::{kugou, kuwo, tencent};
+use parakeet_crypto::crypto::{kugou, kuwo, tencent, ximalaya_pc};
 
 #[derive(Debug, Error)]
 pub enum ParakeetCliError {
@@ -31,6 +31,9 @@ pub enum ParakeetCliError {
     #[error("Failed to init kuwo cipher: {0}")]
     KuwoCipherInitError(kuwo::InitCipherError),
 
+    #[error("Cipher error: {0}")]
+    XimalayaPcError(ximalaya_pc::Error),
+
     #[error("Unspecified error (placeholder)")]
     #[allow(dead_code)]
     UnspecifiedError,
@@ -51,5 +54,11 @@ impl From<kuwo::header::HeaderParseError> for ParakeetCliError {
 impl From<kuwo::InitCipherError> for ParakeetCliError {
     fn from(error: kuwo::InitCipherError) -> Self {
         Self::KuwoCipherInitError(error)
+    }
+}
+
+impl From<ximalaya_pc::Error> for ParakeetCliError {
+    fn from(error: ximalaya_pc::Error) -> Self {
+        Self::XimalayaPcError(error)
     }
 }

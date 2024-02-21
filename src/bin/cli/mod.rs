@@ -10,6 +10,7 @@ mod cli_handle_kuwo;
 mod cli_handle_qmc1;
 mod cli_handle_qmc2;
 mod cli_handle_ximalaya_android;
+mod cli_handle_ximalaya_pc;
 
 pub fn parakeet_main() {
     let options: commands::CliOptions = argh::from_env();
@@ -27,6 +28,7 @@ pub fn parakeet_main() {
         Command::Kugou(options) => cli_handle_kugou::handle(options),
         Command::Kuwo(options) => cli_handle_kuwo::handle(options),
         Command::XimalayaAndroid(options) => cli_handle_ximalaya_android::handle(options),
+        Command::XimalayaPc(options) => cli_handle_ximalaya_pc::handle(options),
     };
 
     match cmd_result {

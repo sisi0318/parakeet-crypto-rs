@@ -4,3 +4,4 @@ pub mod kugou;
 pub mod kuwo;
 pub mod tencent;
 pub mod ximalaya_android;
+pub mod ximalaya_pc;

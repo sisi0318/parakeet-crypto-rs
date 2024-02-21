@@ -17,4 +17,5 @@ pub enum Command {
     Kugou(cli_handle_kugou::Options),
     Kuwo(cli_handle_kuwo::Options),
     XimalayaAndroid(cli_handle_ximalaya_android::Options),
+    XimalayaPc(cli_handle_ximalaya_pc::Options),
 }

@@ -15,6 +15,7 @@
   - `kwm` / AI 升频 `mflac` [^kuwo_mflac]
 - 喜马拉雅
   - 安卓客户端 `x2m` / `x3m` [^x3m]
+  - PC 客户端 `xm`
 
 [^qm_mflac]: 安卓需要提取密钥数据库；PC 端需要提供密钥数据库以及解密密钥。
 [^kuwo_mflac]: 需要在有特权的安卓设备提取密钥文件: `/data/data/cn.kuwo.player/files/mmkv/cn.kuwo.player.mmkv.defaultconfig`
