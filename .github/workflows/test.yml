@@ -12,7 +12,7 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
-  build:
+  testing:
     strategy:
       fail-fast: true
       matrix:
@@ -47,29 +47,25 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: debug-binaries
-        path: target/debug/**/*.exe   # 适用于 Windows，如果是 Linux/MacOS，则为 target/debug/**/*
+        path: |
+          target/debug/**/*.exe
+          target/debug/**/*
+        if: runner.os == 'Windows'
+    - uses: actions/upload-artifact@v3
+      with:
+        name: debug-binaries
+        path: target/debug/**/* 
+      if: runner.os != 'Windows'
     - name: Upload release binaries
       uses: actions/upload-artifact@v3
       with:
         name: release-binaries
-        path: target/release/**/*.exe  # 适用于 Windows，如果是 Linux/MacOS，则为 target/release/**/*
-  
-  download:
-    runs-on: ubuntu-22.04
-
-    needs: build
-
-    steps:
-    - name: Download all Artifacts
-      uses: actions/download-artifact@v4.1.7
+        path: |
+          target/release/**/*.exe
+          target/release/**/*
+        if: runner.os == 'Windows'
+    - uses: actions/upload-artifact@v3
       with:
-        path: downloaded-artifacts
-
-    - name: Download specific artifact
-      uses: actions/download-artifact@v4.1.7
-      with:
-        name: debug-binaries
-        path: downloaded-debug-binaries
-
-    - name: List downloaded files
-      run: ls -R downloaded-artifacts
+        name: release-binaries
+        path: target/release/**/* 
+      if: runner.os != 'Windows'
